@@ -25,3 +25,8 @@ dist-ssr
 
 .env
 .eslintcache
+node_modules
+
+# Data
+emotion_data
+emotion_data_splited50
