@@ -1,7 +1,7 @@
 import fs from "fs";
 
-const emotion = "angry";
-const chunkNumber = "2";
+const emotion = "happy";
+const chunkNumber = "4";
 
 const inputPath = `../emotion_landmarkDetected/detected${emotion}Result${chunkNumber}.json`;
 const outputPath = `../dataset/${emotion}${chunkNumber}.json`;
@@ -30,14 +30,21 @@ fs.readFile(inputPath, "utf-8", (err, data) => {
   }
 
   const filteredData = JSON.parse(data).map(el => {
-    const number = emotion === "happy" ? 1 : 0;
+    const emotionNumber = emotion === "happy" ? 1 : 0;
 
-    const filteredPoint = el.faceBlendshapes.filter(faceBlendpoint =>
-      desiredCategories.includes(faceBlendpoint.categoryName)
-    );
+    const filteredPoint = [];
+
+    el.faceBlendshapes.forEach(faceBlendpoint => {
+      if (desiredCategories.includes(faceBlendpoint.categoryName)) {
+        filteredPoint.push({
+          faceBlendName: faceBlendpoint.categoryName,
+          score: faceBlendpoint.score,
+        });
+      }
+    });
 
     return {
-      number,
+      emotion: emotionNumber,
       faceBlendshapes: filteredPoint,
     };
   });
