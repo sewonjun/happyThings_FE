@@ -1,12 +1,15 @@
-import "./App.css";
-// import DataDetectLandmark from "./components/DataDetectLandmark";
-import Train from "./components/Train";
+import { Routes, Route } from "react-router-dom";
+
+import FaceDetect from "./components/FaceDetection";
+import Header from "./components/Header";
 
 function App() {
   return (
     <>
-      {/* <DataDetectLandmark /> */}
-      <Train />
+      <Header />
+      <Routes>
+        <Route path="/" element={<FaceDetect />} />
+      </Routes>
     </>
   );
 }
