@@ -11,7 +11,7 @@ async function initFaceLandmarker() {
     {
       baseOptions: {
         modelAssetPath: "../model/face_landmarker.task",
-        delegate: "CPU",
+        delegate: "GPU",
       },
       outputFaceBlendshapes: true,
       runningMode: "VIDEO",

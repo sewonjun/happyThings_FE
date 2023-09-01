@@ -1,17 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 import vision from "@mediapipe/tasks-vision";
+import { v4 as uuidv4 } from "uuid";
 const { FaceLandmarker, DrawingUtils } = vision;
 import initMediaPipe from "../../../mediaPipe/initMediaPipe";
+import coloredFlower from "../../assets/flowerColored.svg";
+import uncoloredFlower from "../../assets/flowerUncolored.svg";
+import emotionPredictionModel from "../../../util/emotionPredictionModel";
+import predictHappiness from "../../../util/predictHappiness";
+import CapturedImage from "../CapturedImage";
 
 const FaceLandmarkDetection = () => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const captureRef = useRef(null);
+  const lastTime = useRef(0);
+  const imgRef = useRef([]);
   const [faceLandmarker, setFaceLandmarker] = useState(null);
   const [webcamRunning, setWebcamRunning] = useState(false);
   const [videoDetect, setVideoDetect] = useState(false);
   const [animationId, setAnimationId] = useState("");
-  const lastTime = useRef(0);
-  const videoWidth = "480px";
+  const [error, setError] = useState("");
+  const [model, setModel] = useState(null);
+  const [isHappy, setIsHappy] = useState(false);
+
+  let imgRefNumber = 0;
   let runningMode = "VIDEO";
   let canvasCtx;
 
@@ -22,17 +34,33 @@ const FaceLandmarkDetection = () => {
     }
 
     createFaceLandmarker();
+    loadModel();
   }, []);
 
-  function handleToggleVideo() {
-    setWebcamRunning(true);
+  useEffect(() => {
+    if (error) {
+      window.scrollTo(0, 0);
+    }
+  }, [error]);
+
+  async function loadModel() {
+    const modelLoaded = await emotionPredictionModel();
+    setModel(modelLoaded);
+  }
+
+  function handleErrorBtn() {
+    predictWebcam();
+    setError(false);
   }
 
   function handleFaceMask() {
     if (videoDetect && animationId) {
       window.cancelAnimationFrame(animationId);
+      videoRef.current.removeEventListener("loadeddata", predictWebcam);
+
       setWebcamRunning(false);
       setVideoDetect(false);
+      setAnimationId(null);
 
       return;
     }
@@ -40,11 +68,10 @@ const FaceLandmarkDetection = () => {
     if (faceLandmarker) {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         enableCam();
+        setVideoDetect(true);
       } else {
         alert("getUserMedia() is not supported by your browser");
       }
-      videoRef.current.addEventListener("loadeddata", predictWebcam);
-      setVideoDetect(true);
     }
   }
 
@@ -70,46 +97,53 @@ const FaceLandmarkDetection = () => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
     const videoRect = videoRef.current?.getBoundingClientRect();
-    const radio = video.videoHeight / video.videoWidth;
 
-    canvas.setAttribute("class", "canvas");
-    canvas.setAttribute("width", "480px");
-    canvas.setAttribute("height", "360px");
+    if (canvas === null) return;
+
+    canvas?.setAttribute("class", "canvas");
+    canvas?.setAttribute("width", videoRect.width);
+    canvas?.setAttribute("height", videoRect.height);
     canvas.style.left = videoRect.x;
     canvas.style.top = videoRect.y;
-    canvas.style.width = `${videoRef.current.width}px`;
-    canvas.style.height = `${videoRef.current.height}px`;
+    canvas.style.width = videoRect.width;
+    canvas.style.height = videoRect.height;
     canvasCtx = canvasRef.current.getContext("2d");
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-
-    let lastVideoTime = -1;
     const drawingUtils = new DrawingUtils(canvasCtx);
-
-    video.style.width = videoWidth + "px";
-    video.style.height = videoWidth * radio + "px";
 
     if (runningMode === "VIDEO") {
       await faceLandmarker.setOptions({ runningMode: runningMode });
     }
-    const currentTime = new Date().getTime();
-    const delay = 1000;
+    const currentTime = performance.now();
+    const delay = 500;
 
     if (!lastTime.current || currentTime - lastTime.current >= delay) {
       lastTime.current = currentTime;
       let startTimeMs = performance.now();
 
-      canvasCtx.drawImage(
+      const capture = captureRef.current;
+      capture?.setAttribute("class", "canvas");
+      capture?.setAttribute("width", videoRect.width);
+      capture?.setAttribute("height", videoRect.height);
+      capture.style.left = videoRect.x;
+      capture.style.top = videoRect.y;
+      capture.style.width = videoRect.width;
+      capture.style.height = videoRect.height;
+      let captureCtx = captureRef.current.getContext("2d");
+      captureCtx.clearRect(0, 0, canvas.width, canvas.height);
+      captureCtx.drawImage(
         videoRef.current,
         0,
         0,
         videoRef.current.width,
         videoRef.current.height
       );
-      canvasRef.current.toDataURL("image/png");
+      const capturedPicture = captureRef.current.toDataURL("image/png");
 
-      if (lastVideoTime !== video.currentTime) {
-        lastVideoTime = video.currentTime;
-        results = faceLandmarker.detectForVideo(video, startTimeMs);
+      results = faceLandmarker.detectForVideo(video, startTimeMs);
+
+      if (results.faceLandmarks.length === 0) {
+        setError("Face Detection Failed");
       }
 
       if (results.faceLandmarks) {
@@ -162,66 +196,130 @@ const FaceLandmarkDetection = () => {
         }
       }
 
+      const faceBlendShape = results.faceBlendshapes[0].categories;
+      const emotionResult = await predictHappiness(faceBlendShape, model);
+
+      setIsHappy(emotionResult);
+
+      if (emotionResult && imgRefNumber < 5) {
+        imgRef.current[imgRefNumber] = {
+          capturedPicture,
+          faceBlendShape,
+        };
+        imgRefNumber++;
+      }
+
       if (webcamRunning) {
         const animationFrameId = window.requestAnimationFrame(predictWebcam);
         setAnimationId(animationFrameId);
       }
     } else {
       window.cancelAnimationFrame(animationId);
-      return predictWebcam();
+      videoRef.current.removeEventListener("loadeddata", predictWebcam);
+      predictWebcam();
+
+      return;
     }
   }
 
   return (
     <>
-      <div className="flex justify-center items-center h-screen ">
-        <div className="relative grid grid-cols-1 w-6/12 h-3/5 py-20 border-2 border-yellow-400">
-          {webcamRunning ? (
-            <>
-              <div className="block w-full h-[360px] border-2 border-stone-950 bg-black my-5">
-                <video
-                  id="webcam"
-                  ref={videoRef}
-                  width="480"
-                  height="360"
-                  autoPlay
-                  className="block border-2 border-stone-950 w-full h-full"
-                ></video>
-              </div>
-              <div className="w-full h-[360px] border-2 border-stone-950 bg-black my-5 flex justify-center items-center">
-                <canvas
-                  id="output_canvas"
-                  ref={canvasRef}
-                  width="480"
-                  height="360"
-                  className="block border-2 border-red-700"
-                />
-              </div>
-              <div className="inline-block text-center">
-                <button
-                  type="button"
-                  onClick={handleFaceMask}
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 border border-blue-700 rounded"
-                >
-                  {videoDetect ? "Pause" : "Start"}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="w-full h-[360px] border-2 border-stone-950 bg-black my-5"></div>
-              <div className="inline-block text-center">
-                <button
-                  type="button"
-                  onClick={handleToggleVideo}
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 border border-blue-700 rounded"
-                >
-                  {faceLandmarker ? "Start video" : "loading..."}
-                </button>
-              </div>
-            </>
-          )}
+      {error ? (
+        <div className="flex flex-col justify-center items-center mt-10 h-auto w-6/12 m-auto bg-red-500">
+          <h1 className="text-base text-gray-50 decoration-solid mb-1">
+            Error: you need to keep your face on Video
+          </h1>
+          <button
+            onClick={handleErrorBtn}
+            type="button"
+            className="text-gray-50 bg-black h-auto p-1 m-1"
+          >
+            Restart
+          </button>
         </div>
+      ) : (
+        <></>
+      )}
+      {webcamRunning ? (
+        <>
+          <div className="flex flex-col h-screen justify-center items-center">
+            {isHappy ? (
+              <div className="flex flex-row">
+                <img src={coloredFlower} alt="" className="w-20" />
+                <img src={coloredFlower} alt="" className="w-20" />
+                <img src={coloredFlower} alt="" className="w-20" />
+              </div>
+            ) : (
+              <div className="flex flex-row">
+                <img src={uncoloredFlower} alt="" className="w-20" />
+                <img src={uncoloredFlower} alt="" className="w-20" />
+                <img src={uncoloredFlower} alt="" className="w-20" />
+              </div>
+            )}
+            <div className="flex flex-col justify-center items-center w-6/12 h-4/5 border-2 max-w-md bg-stone-800">
+              <div className="grid grid-cols">
+                <div className="relative block w-full h-[360px] border-y border-violet-950">
+                  <video
+                    ref={videoRef}
+                    width="480"
+                    height="360"
+                    autoPlay
+                    className="w-full h-[360px] bg-white border-8 border-stone-800"
+                  ></video>
+                </div>
+                <div className="absolute block w-fit h-[360px] ">
+                  <canvas
+                    ref={canvasRef}
+                    height="360"
+                    className="block w-full h-[360px]"
+                  />
+                </div>
+                <div className="block text-center items-center justify-center my-5 py-5">
+                  <button
+                    type="button"
+                    onClick={handleFaceMask}
+                    className="bg-amber-400 hover:bg-white hover:text-amber-400 text-white font-bold py-2 mt-5 px-4 border  rounded text-2xl"
+                  >
+                    {videoDetect ? "Stop" : "Start"}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="hidden">
+              <canvas ref={captureRef} />
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="block text-center my-10 mt-20">
+            <button
+              type="button"
+              onClick={() => {
+                setWebcamRunning(true);
+              }}
+              className="bg-amber-400 hover:bg-white hover:text-amber-400 text-white font-bold py-2 px-4 border rounded text-2xl"
+            >
+              {faceLandmarker ? "Show me your Happy Moment" : "loading..."}
+            </button>
+          </div>
+        </>
+      )}
+      <div className="flex justify-center align-middle text-center text-2xl py-5">
+        {imgRef.length ? "Select one picture to make a polaroid" : ""}
+      </div>
+      <div className="flex flex-col justify-center align-middle text-center">
+        {Array.from({ length: 5 }, (_, i) => i).map(index =>
+          imgRef.current[index] ? (
+            <CapturedImage
+              imgRefCurrent={imgRef.current[index].capturedPicture}
+              faceBlendShape={imgRef.current[index].faceBlendShape}
+              key={uuidv4()}
+            />
+          ) : (
+            <></>
+          )
+        )}
       </div>
     </>
   );
