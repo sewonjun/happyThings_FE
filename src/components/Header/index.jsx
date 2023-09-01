@@ -3,11 +3,11 @@ import logo from "../../assets/logo.svg";
 
 export default function Header() {
   return (
-    <Link to="/home" className="flex justify-center">
+    <Link to="/" className="flex justify-center my-2 p-1">
       <img
         src={logo}
         alt="happy things logo"
-        className="m-10 mx-auto max-w-screen-sm"
+        className=" h-1/5 min-w-330 min-h-100"
       />
     </Link>
   );
