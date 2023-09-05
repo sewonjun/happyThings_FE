@@ -35,7 +35,6 @@ async function predictHappiness(results, model) {
     const predictionTensor = model.predict(tf.tensor([orderedResults]));
     const predictionArray = await predictionTensor.array();
 
-    //predictionArray를 happy인지 unhappy인지 판별
     if (
       predictionArray[0][0] < Number(0.2) &&
       predictionArray[0][1] >= Number(0.9)
