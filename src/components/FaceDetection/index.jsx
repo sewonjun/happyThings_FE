@@ -9,7 +9,7 @@ import emotionPredictionModel from "../../../util/emotionPredictionModel";
 import predictHappiness from "../../../util/predictHappiness";
 import CapturedImage from "../CapturedImage";
 
-const FaceLandmarkDetection = () => {
+const FaceDetection = () => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const captureRef = useRef(null);
@@ -206,6 +206,7 @@ const FaceLandmarkDetection = () => {
           capturedPicture,
           faceBlendShape,
         };
+
         imgRefNumber++;
       }
 
@@ -325,4 +326,4 @@ const FaceLandmarkDetection = () => {
   );
 };
 
-export default FaceLandmarkDetection;
+export default FaceDetection;
