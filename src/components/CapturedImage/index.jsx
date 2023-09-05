@@ -8,22 +8,20 @@ import unhappy from "../../assets/unhappy.svg";
 export default function CapturedImage({ imgRefCurrent, faceBlendShape }) {
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [error, setError] = useState(null);
+  const SERVER_URL = import.meta.env.SERVER_URL;
 
   async function fetchData(bodyData, label) {
     try {
       const emotionData = label;
-      const response = await fetch(
-        `http://localhost:3000/data/${emotionData}`,
-        {
-          method: "POST",
-          mode: "cors",
-          headers: {
-            Accept: "application/json, text/plain, */*",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(bodyData),
-        }
-      );
+      const response = await fetch(`${SERVER_URL}/data/${emotionData}`, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          Accept: "application/json, text/plain, */*",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bodyData),
+      });
 
       if (response.status !== 201 || !response) {
         throw new Error("Failed to send data");
