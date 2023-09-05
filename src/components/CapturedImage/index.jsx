@@ -7,23 +7,32 @@ import unhappy from "../../assets/unhappy.svg";
 
 export default function CapturedImage({ imgRefCurrent, faceBlendShape }) {
   const [feedbackSent, setFeedbackSent] = useState(false);
+  const [error, setError] = useState(null);
 
   async function fetchData(bodyData, label) {
-    const emotionData = label;
-    const response = await fetch(`http://localhost:3000/data/${emotionData}`, {
-      method: "POST",
-      mode: "cors",
-      headers: {
-        Accept: "application/json, text/plain, */*",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(bodyData),
-    });
+    try {
+      const emotionData = label;
+      const response = await fetch(
+        `http://localhost:3000/data/${emotionData}`,
+        {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            Accept: "application/json, text/plain, */*",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(bodyData),
+        }
+      );
 
-    if (response.status !== 201 || !response) {
-      throw Error();
+      if (response.status !== 201 || !response) {
+        throw new Error("Failed to send data");
+      }
+      setFeedbackSent(true);
+      setError(null);
+    } catch (error) {
+      setError("An error occurred while sending feedback.");
     }
-    setFeedbackSent(true);
   }
 
   function handleUserEmotionEvaluation(event) {
@@ -42,6 +51,7 @@ export default function CapturedImage({ imgRefCurrent, faceBlendShape }) {
       >
         <img src={imgRefCurrent} alt="" />
       </Link>
+      {error && <p className="text-red-500">{error}</p>}
       {!feedbackSent ? (
         <>
           <p>Choose your emotion for our improvement</p>
