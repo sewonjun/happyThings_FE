@@ -30,3 +30,7 @@ node_modules
 # Data
 emotion_data
 emotion_data_splited50
+
+# Test
+coverage
+jest.setup.cjs
