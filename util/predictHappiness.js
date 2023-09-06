@@ -36,13 +36,20 @@ async function predictHappiness(results, model) {
     const predictionArray = await predictionTensor.array();
 
     if (
-      predictionArray[0][0] < Number(0.2) &&
+      predictionArray[0][0] < Number(0.1) &&
       predictionArray[0][1] >= Number(0.9)
     ) {
-      return true;
-    } else {
-      return false;
+      return "happy";
     }
+
+    if (
+      predictionArray[0][0] >= Number(0.7) &&
+      predictionArray[0][1] < Number(0.3)
+    ) {
+      return "unhappy";
+    }
+
+    return "neutral";
   } catch (error) {
     throw new Error("Emotion Prediction Failed");
   }

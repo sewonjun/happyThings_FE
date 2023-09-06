@@ -3,8 +3,8 @@ import vision from "@mediapipe/tasks-vision";
 import { v4 as uuidv4 } from "uuid";
 const { FaceLandmarker, DrawingUtils } = vision;
 import initMediaPipe from "../../../mediaPipe/initMediaPipe";
-import coloredFlower from "../../assets/flowerColored.svg";
-import uncoloredFlower from "../../assets/flowerUncolored.svg";
+// import coloredFlower from "../../assets/flowerColored.svg";
+// import uncoloredFlower from "../../assets/flowerUncolored.svg";
 import emotionPredictionModel from "../../../util/emotionPredictionModel";
 import predictHappiness from "../../../util/predictHappiness";
 import CapturedImage from "../CapturedImage";
@@ -16,13 +16,13 @@ const FaceDetection = () => {
   const lastTime = useRef(0);
   const imgRef = useRef([]);
   const [faceLandmarker, setFaceLandmarker] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [webcamRunning, setWebcamRunning] = useState(false);
   const [videoDetect, setVideoDetect] = useState(false);
   const [animationId, setAnimationId] = useState("");
   const [error, setError] = useState("");
   const [model, setModel] = useState(null);
-  const [isHappy, setIsHappy] = useState(false);
-
+  const [emotion, setEmotion] = useState(null);
   let imgRefNumber = 0;
   let runningMode = "VIDEO";
   let canvasCtx;
@@ -42,6 +42,23 @@ const FaceDetection = () => {
       window.scrollTo(0, 0);
     }
   }, [error]);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const ua = navigator.userAgent;
+      if (/Mobi|Android/i.test(ua)) {
+        setIsMobile(true);
+      }
+
+      if (/iPhone/i.test(ua)) {
+        setIsMobile(true);
+      }
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   async function loadModel() {
     const modelLoaded = await emotionPredictionModel();
@@ -138,9 +155,9 @@ const FaceDetection = () => {
         videoRef.current.width,
         videoRef.current.height
       );
-      const capturedPicture = captureRef.current.toDataURL("image/png");
 
-      results = faceLandmarker.detectForVideo(video, startTimeMs);
+      const capturedPicture = captureRef.current.toDataURL("image/png");
+      results = await faceLandmarker.detectForVideo(video, startTimeMs);
 
       if (results.faceLandmarks.length === 0) {
         setError("Face Detection Failed");
@@ -199,9 +216,9 @@ const FaceDetection = () => {
       const faceBlendShape = results.faceBlendshapes[0].categories;
       const emotionResult = await predictHappiness(faceBlendShape, model);
 
-      setIsHappy(emotionResult);
+      setEmotion(emotionResult);
 
-      if (emotionResult && imgRefNumber < 5) {
+      if (emotionResult === "happy") {
         imgRef.current[imgRefNumber] = {
           capturedPicture,
           faceBlendShape,
@@ -244,20 +261,38 @@ const FaceDetection = () => {
       {webcamRunning ? (
         <>
           <div className="flex flex-col h-screen justify-center items-center">
-            {isHappy ? (
-              <div className="flex flex-row">
-                <img src={coloredFlower} alt="" className="w-20" />
-                <img src={coloredFlower} alt="" className="w-20" />
-                <img src={coloredFlower} alt="" className="w-20" />
+            <div className="flex flex-row bg-stone-200 border-4 border-stone-900 ring-offset-0 p-2 m-1 w-auto rounded-3xl justify-around">
+              <div
+                className={`text-4xl p-3 m-2 ${
+                  emotion === "unhappy" ? "bg-red-600 " : "bg-stone-300"
+                } rounded-full border-4 border-stone-900 shadow-md`}
+              >
+                🙁
               </div>
-            ) : (
-              <div className="flex flex-row">
-                <img src={uncoloredFlower} alt="" className="w-20" />
-                <img src={uncoloredFlower} alt="" className="w-20" />
-                <img src={uncoloredFlower} alt="" className="w-20" />
+              <div
+                className={`text-4xl p-3 m-2 ${
+                  emotion === "neutral"
+                    ? "bg-yellow-400 shadow-md"
+                    : "bg-stone-300"
+                } rounded-full border-4 border-stone-900 shadow-md`}
+              >
+                😐
               </div>
-            )}
-            <div className="flex flex-col justify-center items-center w-6/12 h-4/5 border-2 max-w-md bg-stone-800">
+              <div
+                className={`text-4xl p-3 m-2 ${
+                  emotion === "happy" ? "bg-lime-400" : "bg-stone-300"
+                } rounded-full border-4 border-stone-900 stone-md`}
+              >
+                🙂
+              </div>
+            </div>
+            <div
+              className={`${
+                isMobile
+                  ? "flex flex-col justify-center items-center w-full h-4/5 border-2 bg-stone-800"
+                  : "flex flex-col justify-center items-center w-6/12 h-4/5 border-2 max-w-md bg-stone-800"
+              }`}
+            >
               <div className="grid grid-cols">
                 <div className="relative block w-full h-[360px] border-y border-violet-950">
                   <video
@@ -265,6 +300,7 @@ const FaceDetection = () => {
                     width="480"
                     height="360"
                     autoPlay
+                    playsInline
                     className="w-full h-[360px] bg-white border-8 border-stone-800"
                   ></video>
                 </div>
@@ -310,17 +346,19 @@ const FaceDetection = () => {
         {imgRef.length ? "Select one picture to make a polaroid" : ""}
       </div>
       <div className="flex flex-col justify-center align-middle text-center">
-        {Array.from({ length: 5 }, (_, i) => i).map(index =>
-          imgRef.current[index] ? (
-            <CapturedImage
-              imgRefCurrent={imgRef.current[index].capturedPicture}
-              faceBlendShape={imgRef.current[index].faceBlendShape}
-              key={uuidv4()}
-            />
-          ) : (
-            <></>
-          )
-        )}
+        {imgRef.current
+          .slice(-5)
+          .map(imgData =>
+            imgData ? (
+              <CapturedImage
+                imgRefCurrent={imgData.capturedPicture}
+                faceBlendShape={imgData.faceBlendShape}
+                key={uuidv4()}
+              />
+            ) : (
+              <></>
+            )
+          )}
       </div>
     </>
   );
