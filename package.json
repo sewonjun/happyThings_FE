@@ -15,6 +15,7 @@
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.3",
     "@tensorflow/tfjs-vis": "^1.5.1",
+    "babel-plugin-transform-vite-meta-env": "^1.0.3",
     "danfojs": "^1.1.1",
     "danfojs-node": "^1.1.2",
     "html2canvas": "^1.4.1",

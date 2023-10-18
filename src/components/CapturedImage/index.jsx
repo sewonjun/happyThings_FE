@@ -8,7 +8,7 @@ import unhappy from "../../assets/unhappy.svg";
 export default function CapturedImage({ imgRefCurrent, faceBlendShape }) {
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [error, setError] = useState(null);
-  const SERVER_URL = import.meta.env.SERVER_URL;
+  const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
   async function fetchData(bodyData, label) {
     try {
@@ -41,11 +41,11 @@ export default function CapturedImage({ imgRefCurrent, faceBlendShape }) {
   }
 
   return (
-    <>
+    <div className="border-2 border-stone-900 flex flex-col justify-center align-middle m-auto">
       <Link
         to={"/polaroid"}
         state={{ image: imgRefCurrent }}
-        className="basis-full w-3/12 m-auto"
+        className="basis-full w-full m-auto"
       >
         <img src={imgRefCurrent} alt="" />
       </Link>
@@ -65,6 +65,6 @@ export default function CapturedImage({ imgRefCurrent, faceBlendShape }) {
       ) : (
         <p>Thanks for your feedback</p>
       )}
-    </>
+    </div>
   );
 }
