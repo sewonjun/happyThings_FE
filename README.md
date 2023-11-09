@@ -4,7 +4,7 @@
   <img style="width: 500px; " alt="Happy Things Logo" src="src/assets/logo.svg">
 </div>
 <div style="text-align: center;">
-  감정 추론을 통해 행복한 얼굴이 보이면 사진을 찍어주는 AI 기반 감정 추론 웹 어플리케이션 </br>
+  감정 추론을 통해 행복한 얼굴이 보이면 사진을 찍어주는 AI 기반 감정 추론 웹 어플리케이션
   <strong>Happy Things</strong>입니다
 </div>
 </br>
@@ -184,7 +184,7 @@ navigator.mediaDevices.getUserMedia(constraints).then(stream => {
 ></video>
 ```
 
-모바일 환경에서 video가 전체 화면으로 커지면서 face mesh mask가 씌워지지 않는 문제가 생겼다. 이는 ios의 문제라는 사실을 알게 되었다. webkit에서 발표한 **[New <video> Policies for iOS](https://webkit.org/blog/6784/new-video-policies-for-ios/)**을 통해, 과거의 ios에서의 video 태그에 대한 변화를 알게 되었다. 여러 블로그 글에서 video 태그의 재생을 위해서는 사용자 제스처, 즉 eventListener의 동작이 필요하다고 적혀있었다. 하지만 New <video> Policies for iOS에서 명시하길 ios10이후로 무음 video 요소에 대한 유저 제스처 요구 사항이 완화되었다고 한다. 또한, playsinline 속성을 통해 인라인으로 재생할 수 있으며, 재생이 시작될 때 자동으로 전체화면 모드로 들어가지 않는다.
+모바일 환경에서 video가 전체 화면으로 커지면서 face mesh mask가 씌워지지 않는 문제가 생겼다. 이는 ios의 문제라는 사실을 알게 되었다. webkit에서 발표한 [`New <video> Policies for iOS`](https://webkit.org/blog/6784/new-video-policies-for-ios/)을 통해, 과거의 ios에서의 video 태그에 대한 변화를 알게 되었다. 여러 블로그 글에서 video 태그의 재생을 위해서는 사용자 제스처, 즉 eventListener의 동작이 필요하다고 적혀있었다. 하지만 New `<video>` Policies for iOS에서 명시하길 ios10이후로 무음 video 요소에 대한 유저 제스처 요구 사항이 완화되었다고 한다. 또한, playsinline 속성을 통해 인라인으로 재생할 수 있으며, 재생이 시작될 때 자동으로 전체화면 모드로 들어가지 않는다.
 
 ## 행복한 순간을 캡쳐할 수 있는 방법은?
 
@@ -222,7 +222,7 @@ const capturedPicture = captureRef.current.toDataURL("image/png");
 <!-- TailWind -->
 <img src= "https://img.shields.io/badge/TailWind-06B6D4?style=for-the-badge&logo=Tailwind CSS&logoColor=black">
 <!-- Tensorflow -->
-
+<img src= "https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=TensorFlow&logoColor=black">
 <br/>
 
 ## Backend
