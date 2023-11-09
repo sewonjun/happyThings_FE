@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import vision from "@mediapipe/tasks-vision";
 import { v4 as uuidv4 } from "uuid";
 const { FaceLandmarker, DrawingUtils } = vision;
+
 import initMediaPipe from "../../../mediaPipe/initMediaPipe";
-// import coloredFlower from "../../assets/flowerColored.svg";
-// import uncoloredFlower from "../../assets/flowerUncolored.svg";
 import emotionPredictionModel from "../../../util/emotionPredictionModel";
 import predictHappiness from "../../../util/predictHappiness";
+import drawFaceMask from "../../../util/drawFaceMask";
 import CapturedImage from "../CapturedImage";
+import LoadingBtn from "../LoadingBtn";
 
 const FaceDetection = () => {
   const videoRef = useRef(null);
@@ -35,6 +36,8 @@ const FaceDetection = () => {
 
     createFaceLandmarker();
     loadModel();
+
+    handleFaceMask();
   }, []);
 
   useEffect(() => {
@@ -55,10 +58,14 @@ const FaceDetection = () => {
       }
     };
     checkMobile();
-    window.addEventListener("resize", checkMobile);
+    window.addEventListener("checkMobile", checkMobile);
 
-    return () => window.removeEventListener("resize", checkMobile);
+    return () => window.removeEventListener("checkMobile", checkMobile);
   }, []);
+
+  function handleWebCamRunning(bool) {
+    setWebcamRunning(bool);
+  }
 
   async function loadModel() {
     const modelLoaded = await emotionPredictionModel();
@@ -75,7 +82,6 @@ const FaceDetection = () => {
       window.cancelAnimationFrame(animationId);
       videoRef.current.removeEventListener("loadeddata", predictWebcam);
 
-      setWebcamRunning(false);
       setVideoDetect(false);
       setAnimationId(null);
 
@@ -83,16 +89,17 @@ const FaceDetection = () => {
     }
 
     if (faceLandmarker) {
+      setVideoDetect(true);
+
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         enableCam();
-        setVideoDetect(true);
       } else {
         alert("getUserMedia() is not supported by your browser");
       }
     }
   }
 
-  function enableCam() {
+  async function enableCam() {
     if (!faceLandmarker) {
       alert("Wait! faceLandmarker not loaded yet.");
 
@@ -113,7 +120,7 @@ const FaceDetection = () => {
     let results;
     const canvas = canvasRef.current;
     const video = videoRef.current;
-    const videoRect = videoRef.current?.getBoundingClientRect();
+    const videoRect = videoRef.current.getBoundingClientRect();
 
     if (canvas === null) return;
 
@@ -159,58 +166,12 @@ const FaceDetection = () => {
       const capturedPicture = captureRef.current.toDataURL("image/png");
       results = await faceLandmarker.detectForVideo(video, startTimeMs);
 
-      if (results.faceLandmarks.length === 0) {
+      if (!results.faceLandmarks.length) {
         setError("Face Detection Failed");
       }
 
-      if (results.faceLandmarks) {
-        for (const landmarks of results.faceLandmarks) {
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-            { color: "#C0C0C070", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
-            { color: "#FF3030", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,
-            { color: "#FF3030", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
-            { color: "#30FF30", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,
-            { color: "#30FF30", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
-            { color: "#E0E0E0", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_LIPS,
-            { color: "#E0E0E0", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,
-            { color: "#FF3030", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,
-            { color: "#30FF30", lineWidth: 1 }
-          );
-        }
+      if (results.faceLandmarks.length) {
+        drawFaceMask(results, drawingUtils, FaceLandmarker);
       }
 
       const faceBlendShape = results.faceBlendshapes[0].categories;
@@ -328,19 +289,10 @@ const FaceDetection = () => {
           </div>
         </>
       ) : (
-        <>
-          <div className="block text-center my-10 mt-20">
-            <button
-              type="button"
-              onClick={() => {
-                setWebcamRunning(true);
-              }}
-              className="bg-amber-400 hover:bg-white hover:text-amber-400 text-white font-bold py-2 px-4 border rounded text-2xl"
-            >
-              {faceLandmarker ? "Show me your Happy Moment" : "loading..."}
-            </button>
-          </div>
-        </>
+        <LoadingBtn
+          faceLandmarker={faceLandmarker}
+          handleWebCamRunning={handleWebCamRunning}
+        />
       )}
       <div className="flex justify-center align-middle text-center text-2xl py-5">
         {imgRef.length ? "Select one picture to make a polaroid" : ""}
