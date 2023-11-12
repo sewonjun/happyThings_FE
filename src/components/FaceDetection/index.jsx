@@ -36,8 +36,6 @@ const FaceDetection = () => {
 
     createFaceLandmarker();
     loadModel();
-
-    handleFaceMask();
   }, []);
 
   useEffect(() => {
@@ -120,18 +118,28 @@ const FaceDetection = () => {
       const stream = await openMediaDevices(constraints);
       videoRef.current.srcObject = stream;
       videoRef.current.addEventListener("loadeddata", predictWebcam);
+
+      if (runningMode === "VIDEO") {
+        await faceLandmarker.setOptions({ runningMode: runningMode });
+      }
     } catch (error) {
       setErrorMessage("Your device is not available for this service");
     }
   }
 
   async function predictWebcam() {
-    let results;
     const canvas = canvasRef.current;
+
+    if (canvas === null || webcamRunning === false) return;
     const video = videoRef.current;
     const videoRect = videoRef.current.getBoundingClientRect();
 
-    if (canvas === null) return;
+    let startTimeMs = performance.now();
+    const results = await faceLandmarker.detectForVideo(video, startTimeMs);
+
+    if (!results.faceLandmarks.length) {
+      setErrorMessage("Face Detection Failed");
+    }
 
     canvas?.setAttribute("class", "canvas");
     canvas?.setAttribute("width", videoRect.width);
@@ -144,15 +152,14 @@ const FaceDetection = () => {
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
     const drawingUtils = new DrawingUtils(canvasCtx);
 
-    if (runningMode === "VIDEO") {
-      await faceLandmarker.setOptions({ runningMode: runningMode });
+    if (results.faceLandmarks.length) {
+      drawFaceMask(results, drawingUtils, FaceLandmarker);
     }
     const currentTime = performance.now();
     const delay = 500;
 
     if (!lastTime.current || currentTime - lastTime.current >= delay) {
       lastTime.current = currentTime;
-      let startTimeMs = performance.now();
 
       const capture = captureRef.current;
       capture?.setAttribute("class", "canvas");
@@ -173,23 +180,10 @@ const FaceDetection = () => {
       );
 
       const capturedPicture = captureRef.current.toDataURL("image/png");
-      results = await faceLandmarker.detectForVideo(video, startTimeMs);
-
-      if (!results.faceLandmarks.length) {
-        setErrorMessage("Face Detection Failed");
-
-        return;
-      }
-
-      if (results.faceLandmarks.length) {
-        drawFaceMask(results, drawingUtils, FaceLandmarker);
-      }
-
       const faceBlendShape = results.faceBlendshapes[0].categories;
       const emotionResult = await predictHappiness(faceBlendShape, model);
 
       setEmotion(emotionResult);
-
       if (emotionResult === "happy") {
         imgRef.current[imgRefNumber] = {
           capturedPicture,
@@ -204,11 +198,10 @@ const FaceDetection = () => {
         setAnimationId(animationFrameId);
       }
     } else {
-      window.cancelAnimationFrame(animationId);
-      videoRef.current.removeEventListener("loadeddata", predictWebcam);
-      predictWebcam();
-
-      return;
+      if (webcamRunning) {
+        const animationFrameId = window.requestAnimationFrame(predictWebcam);
+        setAnimationId(animationFrameId);
+      }
     }
   }
 
