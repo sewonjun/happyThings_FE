@@ -21,7 +21,7 @@ const FaceDetection = () => {
   const [webcamRunning, setWebcamRunning] = useState(false);
   const [videoDetect, setVideoDetect] = useState(false);
   const [animationId, setAnimationId] = useState("");
-  const [error, setError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [model, setModel] = useState(null);
   const [emotion, setEmotion] = useState(null);
   let imgRefNumber = 0;
@@ -41,10 +41,10 @@ const FaceDetection = () => {
   }, []);
 
   useEffect(() => {
-    if (error) {
+    if (errorMessage) {
       window.scrollTo(0, 0);
     }
-  }, [error]);
+  }, [errorMessage]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -75,7 +75,7 @@ const FaceDetection = () => {
 
   function handleErrorBtn() {
     predictWebcam();
-    setError(false);
+    setErrorMessage("");
   }
 
   function handleFaceMask() {
@@ -83,13 +83,14 @@ const FaceDetection = () => {
       window.cancelAnimationFrame(animationId);
       videoRef.current.removeEventListener("loadeddata", predictWebcam);
 
+      setWebcamRunning(false);
       setVideoDetect(false);
       setAnimationId(null);
 
       return;
     }
 
-    if (faceLandmarker) {
+    if (faceLandmarker && !videoDetect) {
       setVideoDetect(true);
 
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -111,10 +112,17 @@ const FaceDetection = () => {
       video: true,
     };
 
-    navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+    const openMediaDevices = async constraint => {
+      return await navigator.mediaDevices.getUserMedia(constraint);
+    };
+
+    try {
+      const stream = await openMediaDevices(constraints);
       videoRef.current.srcObject = stream;
       videoRef.current.addEventListener("loadeddata", predictWebcam);
-    });
+    } catch (error) {
+      setErrorMessage("Your device is not available for this service");
+    }
   }
 
   async function predictWebcam() {
@@ -168,7 +176,9 @@ const FaceDetection = () => {
       results = await faceLandmarker.detectForVideo(video, startTimeMs);
 
       if (!results.faceLandmarks.length) {
-        setError("Face Detection Failed");
+        setErrorMessage("Face Detection Failed");
+
+        return;
       }
 
       if (results.faceLandmarks.length) {
@@ -204,10 +214,10 @@ const FaceDetection = () => {
 
   return (
     <>
-      {error ? (
+      {errorMessage ? (
         <div className="flex flex-col justify-center items-center mt-10 h-auto w-6/12 m-auto bg-red-500">
           <h1 className="text-base text-gray-50 decoration-solid mb-1">
-            Error: you need to keep your face on Video
+            Error: {errorMessage}
           </h1>
           <button
             onClick={handleErrorBtn}
