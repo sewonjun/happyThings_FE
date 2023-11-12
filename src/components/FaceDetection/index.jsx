@@ -63,8 +63,9 @@ const FaceDetection = () => {
     return () => window.removeEventListener("checkMobile", checkMobile);
   }, []);
 
-  function handleWebCamRunning(bool) {
-    setWebcamRunning(bool);
+  function handleWebCamRunning() {
+    const isWebcamRunning = webcamRunning;
+    setWebcamRunning(!isWebcamRunning);
   }
 
   async function loadModel() {

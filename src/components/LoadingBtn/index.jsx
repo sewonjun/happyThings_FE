@@ -6,7 +6,7 @@ function LoadingBtn({ faceLandmarker, handleWebCamRunning }) {
         <button
           type="button"
           onClick={() => {
-            handleWebCamRunning(true);
+            handleWebCamRunning();
           }}
           className="bg-amber-400 hover:bg-white hover:text-amber-400 text-white font-bold py-2 px-4 border rounded text-2xl"
         >
