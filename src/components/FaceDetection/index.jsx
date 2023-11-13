@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import vision from "@mediapipe/tasks-vision";
 import { v4 as uuidv4 } from "uuid";
 const { FaceLandmarker, DrawingUtils } = vision;
+
 import initMediaPipe from "../../../mediaPipe/initMediaPipe";
-// import coloredFlower from "../../assets/flowerColored.svg";
-// import uncoloredFlower from "../../assets/flowerUncolored.svg";
 import emotionPredictionModel from "../../../util/emotionPredictionModel";
 import predictHappiness from "../../../util/predictHappiness";
+import drawFaceMask from "../../../util/drawFaceMask";
 import CapturedImage from "../CapturedImage";
+import LoadingBtn from "../LoadingBtn";
 
 const FaceDetection = () => {
   const videoRef = useRef(null);
@@ -20,7 +21,7 @@ const FaceDetection = () => {
   const [webcamRunning, setWebcamRunning] = useState(false);
   const [videoDetect, setVideoDetect] = useState(false);
   const [animationId, setAnimationId] = useState("");
-  const [error, setError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [model, setModel] = useState(null);
   const [emotion, setEmotion] = useState(null);
   let imgRefNumber = 0;
@@ -38,10 +39,10 @@ const FaceDetection = () => {
   }, []);
 
   useEffect(() => {
-    if (error) {
+    if (errorMessage) {
       window.scrollTo(0, 0);
     }
-  }, [error]);
+  }, [errorMessage]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -55,10 +56,15 @@ const FaceDetection = () => {
       }
     };
     checkMobile();
-    window.addEventListener("resize", checkMobile);
+    window.addEventListener("checkMobile", checkMobile);
 
-    return () => window.removeEventListener("resize", checkMobile);
+    return () => window.removeEventListener("checkMobile", checkMobile);
   }, []);
+
+  function handleWebCamRunning() {
+    const isWebcamRunning = webcamRunning;
+    setWebcamRunning(!isWebcamRunning);
+  }
 
   async function loadModel() {
     const modelLoaded = await emotionPredictionModel();
@@ -67,7 +73,7 @@ const FaceDetection = () => {
 
   function handleErrorBtn() {
     predictWebcam();
-    setError(false);
+    setErrorMessage("");
   }
 
   function handleFaceMask() {
@@ -82,17 +88,18 @@ const FaceDetection = () => {
       return;
     }
 
-    if (faceLandmarker) {
+    if (faceLandmarker && !videoDetect) {
+      setVideoDetect(true);
+
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         enableCam();
-        setVideoDetect(true);
       } else {
         alert("getUserMedia() is not supported by your browser");
       }
     }
   }
 
-  function enableCam() {
+  async function enableCam() {
     if (!faceLandmarker) {
       alert("Wait! faceLandmarker not loaded yet.");
 
@@ -103,19 +110,36 @@ const FaceDetection = () => {
       video: true,
     };
 
-    navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+    const openMediaDevices = async constraint => {
+      return await navigator.mediaDevices.getUserMedia(constraint);
+    };
+
+    try {
+      const stream = await openMediaDevices(constraints);
       videoRef.current.srcObject = stream;
       videoRef.current.addEventListener("loadeddata", predictWebcam);
-    });
+
+      if (runningMode === "VIDEO") {
+        await faceLandmarker.setOptions({ runningMode: runningMode });
+      }
+    } catch (error) {
+      setErrorMessage("Your device is not available for this service");
+    }
   }
 
   async function predictWebcam() {
-    let results;
     const canvas = canvasRef.current;
-    const video = videoRef.current;
-    const videoRect = videoRef.current?.getBoundingClientRect();
 
-    if (canvas === null) return;
+    if (canvas === null || webcamRunning === false) return;
+    const video = videoRef.current;
+    const videoRect = videoRef.current.getBoundingClientRect();
+
+    let startTimeMs = performance.now();
+    const results = await faceLandmarker.detectForVideo(video, startTimeMs);
+
+    if (!results.faceLandmarks.length) {
+      setErrorMessage("Face Detection Failed");
+    }
 
     canvas?.setAttribute("class", "canvas");
     canvas?.setAttribute("width", videoRect.width);
@@ -128,15 +152,14 @@ const FaceDetection = () => {
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
     const drawingUtils = new DrawingUtils(canvasCtx);
 
-    if (runningMode === "VIDEO") {
-      await faceLandmarker.setOptions({ runningMode: runningMode });
+    if (results.faceLandmarks.length) {
+      drawFaceMask(results, drawingUtils, FaceLandmarker);
     }
     const currentTime = performance.now();
     const delay = 500;
 
     if (!lastTime.current || currentTime - lastTime.current >= delay) {
       lastTime.current = currentTime;
-      let startTimeMs = performance.now();
 
       const capture = captureRef.current;
       capture?.setAttribute("class", "canvas");
@@ -157,67 +180,10 @@ const FaceDetection = () => {
       );
 
       const capturedPicture = captureRef.current.toDataURL("image/png");
-      results = await faceLandmarker.detectForVideo(video, startTimeMs);
-
-      if (results.faceLandmarks.length === 0) {
-        setError("Face Detection Failed");
-      }
-
-      if (results.faceLandmarks) {
-        for (const landmarks of results.faceLandmarks) {
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-            { color: "#C0C0C070", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE,
-            { color: "#FF3030", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW,
-            { color: "#FF3030", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_LEFT_EYE,
-            { color: "#30FF30", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW,
-            { color: "#30FF30", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_FACE_OVAL,
-            { color: "#E0E0E0", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_LIPS,
-            { color: "#E0E0E0", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS,
-            { color: "#FF3030", lineWidth: 1 }
-          );
-          drawingUtils.drawConnectors(
-            landmarks,
-            FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS,
-            { color: "#30FF30", lineWidth: 1 }
-          );
-        }
-      }
-
       const faceBlendShape = results.faceBlendshapes[0].categories;
       const emotionResult = await predictHappiness(faceBlendShape, model);
 
       setEmotion(emotionResult);
-
       if (emotionResult === "happy") {
         imgRef.current[imgRefNumber] = {
           capturedPicture,
@@ -232,20 +198,19 @@ const FaceDetection = () => {
         setAnimationId(animationFrameId);
       }
     } else {
-      window.cancelAnimationFrame(animationId);
-      videoRef.current.removeEventListener("loadeddata", predictWebcam);
-      predictWebcam();
-
-      return;
+      if (webcamRunning) {
+        const animationFrameId = window.requestAnimationFrame(predictWebcam);
+        setAnimationId(animationFrameId);
+      }
     }
   }
 
   return (
     <>
-      {error ? (
+      {errorMessage ? (
         <div className="flex flex-col justify-center items-center mt-10 h-auto w-6/12 m-auto bg-red-500">
           <h1 className="text-base text-gray-50 decoration-solid mb-1">
-            Error: you need to keep your face on Video
+            Error: {errorMessage}
           </h1>
           <button
             onClick={handleErrorBtn}
@@ -328,19 +293,10 @@ const FaceDetection = () => {
           </div>
         </>
       ) : (
-        <>
-          <div className="block text-center my-10 mt-20">
-            <button
-              type="button"
-              onClick={() => {
-                setWebcamRunning(true);
-              }}
-              className="bg-amber-400 hover:bg-white hover:text-amber-400 text-white font-bold py-2 px-4 border rounded text-2xl"
-            >
-              {faceLandmarker ? "Show me your Happy Moment" : "loading..."}
-            </button>
-          </div>
-        </>
+        <LoadingBtn
+          faceLandmarker={faceLandmarker}
+          handleWebCamRunning={handleWebCamRunning}
+        />
       )}
       <div className="flex justify-center align-middle text-center text-2xl py-5">
         {imgRef.length ? "Select one picture to make a polaroid" : ""}
