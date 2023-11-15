@@ -186,7 +186,22 @@ navigator.mediaDevices.getUserMedia(constraints).then(stream => {
 
 모바일 환경에서 video가 전체 화면으로 커지면서 face mesh mask가 씌워지지 않는 문제가 생겼다. 이는 ios의 문제라는 사실을 알게 되었다. webkit에서 발표한 [`New <video> Policies for iOS`](https://webkit.org/blog/6784/new-video-policies-for-ios/)을 통해, 과거의 ios에서의 video 태그에 대한 변화를 알게 되었다. 여러 블로그 글에서 video 태그의 재생을 위해서는 사용자 제스처, 즉 eventListener의 동작이 필요하다고 적혀있었다. 하지만 New `<video>` Policies for iOS에서 명시하길 ios10이후로 무음 video 요소에 대한 유저 제스처 요구 사항이 완화되었다고 한다. 또한, playsinline 속성을 통해 인라인으로 재생할 수 있으며, 재생이 시작될 때 자동으로 전체화면 모드로 들어가지 않는다.
 
+## 얼굴을 매끄럽게 따라가지 못하는 face-mesh mask.
+
+-> canelAnimationFrame 사용했던 코드와, 그 코드 없이 그냥 requestAnimationFrame 사용하는 코드 비교 및 설명
+
+얼굴을 인식하기 위해서 Mediapipe의 Face landmark detection을 이용한 face-mesh mask를 움직이는 얼굴을 따라가면서 씌워줘야했다.
+
 ## 행복한 순간을 캡쳐할 수 있는 방법은?
+
+행복한 순간을 캡쳐하기 위해서는 아래와 같은 과정을 거쳐야 했다.
+
+- face-landmark-detection으로 face-mesh mask를 씌운다.
+- 얼굴 감지한 후 반환하는 faceblendshape 값들을 받는다.
+- faceblendshape 값들을 통해 emotion-prediction 모델을 통해 unhappy 수치, happy 수치를 받는다.
+- 값들을 통해 사용자에게 맨위에 있는 신호등으로 결과값을 알려주고, happy였던 당시의 얼굴을 이미지로 video 밑에 띄워준다.
+
+video 태그를 통해 라이브로 얼굴을 인식하려면 보통 하나의 프레임이 1초에 를 돌아가는 동안 이루어져야 했다. 빠르게 얼굴을 인식하는 face-landmark-detection과 더불어 위의 모든 과정을 반복하는 것은 무리가 있다고 생각했다.
 
 ```jsx
 const capture = captureRef.current;
