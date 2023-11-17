@@ -180,7 +180,7 @@ const FaceDetection = () => {
       );
 
       const capturedPicture = captureRef.current.toDataURL("image/png");
-      const faceBlendShape = results.faceBlendshapes[0].categories;
+      const faceBlendShape = results.faceBlendshapes[0]?.categories;
       const emotionResult = await predictHappiness(faceBlendShape, model);
 
       setEmotion(emotionResult);
