@@ -34,6 +34,11 @@ const FaceDetection = () => {
       setFaceLandmarker(faceLandmarkerInstance);
     }
 
+    async function loadModel() {
+      const modelLoaded = await emotionPredictionModel();
+      setModel(modelLoaded);
+    }
+
     createFaceLandmarker();
     loadModel();
   }, []);
@@ -64,11 +69,6 @@ const FaceDetection = () => {
   function handleWebCamRunning() {
     const isWebcamRunning = webcamRunning;
     setWebcamRunning(!isWebcamRunning);
-  }
-
-  async function loadModel() {
-    const modelLoaded = await emotionPredictionModel();
-    setModel(modelLoaded);
   }
 
   function handleErrorBtn() {
