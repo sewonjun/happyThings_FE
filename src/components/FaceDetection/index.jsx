@@ -1,10 +1,10 @@
+import * as tf from "@tensorflow/tfjs";
 import { useEffect, useRef, useState } from "react";
 import vision from "@mediapipe/tasks-vision";
 import { v4 as uuidv4 } from "uuid";
 const { FaceLandmarker, DrawingUtils } = vision;
 
 import initMediaPipe from "../../../mediaPipe/initMediaPipe";
-import emotionPredictionModel from "../../../util/emotionPredictionModel";
 import predictHappiness from "../../../util/predictHappiness";
 import drawFaceMask from "../../../util/drawFaceMask";
 import CapturedImage from "../CapturedImage";
@@ -35,8 +35,12 @@ const FaceDetection = () => {
     }
 
     async function loadModel() {
-      const modelLoaded = await emotionPredictionModel();
-      setModel(modelLoaded);
+      const model = await tf.loadLayersModel(
+        tf.io.http("https://localhost:5173/model/emotion-model.json")
+      );
+      if (model) {
+        setModel(model);
+      }
     }
 
     createFaceLandmarker();
