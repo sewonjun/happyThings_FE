@@ -37,7 +37,12 @@ const FaceDetection = () => {
     async function loadModel() {
       const model = await tf.loadLayersModel(
         tf.io.http(`${import.meta.env.VITE_URL}/model/emotion-model.json`, {
-          requestInit: { method: "GET" },
+          requestInit: {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
         })
       );
       if (model) {
