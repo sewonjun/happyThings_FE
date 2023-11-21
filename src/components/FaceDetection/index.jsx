@@ -36,7 +36,7 @@ const FaceDetection = () => {
 
     async function loadModel() {
       const model = await tf.loadLayersModel(
-        tf.io.http("https://localhost:5173/model/emotion-model.json")
+        tf.io.http("http://app.happythings.today/model/emotion-model.json")
       );
       if (model) {
         setModel(model);
