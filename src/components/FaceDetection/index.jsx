@@ -78,8 +78,7 @@ const FaceDetection = () => {
   }, []);
 
   function handleWebCamRunning() {
-    const isWebcamRunning = webcamRunning;
-    setWebcamRunning(!isWebcamRunning);
+    setWebcamRunning(prev => !prev);
   }
 
   function handleErrorBtn() {
