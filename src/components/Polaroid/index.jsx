@@ -6,7 +6,6 @@ export default function Polaroid() {
   const location = useLocation();
   const image = location.state?.image;
   const newDate = new Date().toLocaleDateString();
-
   const polaroidRef = useRef(null);
 
   const downloadPolaroid = () => {

@@ -42,6 +42,4 @@ jsonArray.forEach(data => {
   csvData.push(row.join(","));
 });
 
-console.log(csvData);
 fs.writeFileSync(outputPath, csvData.join("\n"));
-console.log();

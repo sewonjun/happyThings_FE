@@ -151,7 +151,6 @@ const FaceDetection = () => {
       setErrorMessage("Face Detection Failed");
     }
 
-    canvas?.setAttribute("class", "canvas");
     canvas?.setAttribute("width", videoRect.width);
     canvas?.setAttribute("height", videoRect.height);
     canvas.style.left = videoRect.x;
@@ -172,7 +171,6 @@ const FaceDetection = () => {
       lastTime.current = currentTime;
 
       const capture = captureRef.current;
-      capture?.setAttribute("class", "canvas");
       capture?.setAttribute("width", videoRect.width);
       capture?.setAttribute("height", videoRect.height);
       capture.style.left = videoRect.x;
@@ -192,8 +190,8 @@ const FaceDetection = () => {
       const capturedPicture = captureRef.current.toDataURL("image/png");
       const faceBlendShape = results.faceBlendshapes[0]?.categories;
       const emotionResult = await predictHappiness(faceBlendShape, model);
-
       setEmotion(emotionResult);
+
       if (emotionResult === "happy") {
         imgRef.current[imgRefNumber] = {
           capturedPicture,
