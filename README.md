@@ -1,8 +1,7 @@
-# happythings fe
-
 <div style="display: flex; justify-content: center;">
   <img style="width: 500px; " alt="Happy Things Logo" src="src/assets/logo.svg">
 </div>
+</br>
 <div style="text-align: center;">
   감정 추론을 통해 행복한 얼굴이 보이면 사진을 찍어주는 AI 기반 감정 추론 웹 어플리케이션
   <strong>Happy Things</strong>입니다
@@ -11,7 +10,7 @@
 
 # 📒 Table of Contents
 
-- [Preview](#🎬-Preview) <br/>
+- [Preview](#🎬-Preview)
 - [Introduction](#🙌-Introduction)
 - [Challenges](#⚙️-Challenges)
 - [Tech Stack](#🛠️-Tech-Stacks)
@@ -21,9 +20,211 @@
 
 # 🙌 Introduction
 
-## Motivation
+Happy Things는 안면 인식을 통해 사람의 감정을 추론하여, 그 순간을 사진으로 제공해주는 웹 어플리케이션입니다. 자체 감정 추론 모델을 개발하여, 모델이 행복한 표정을 실시간으로 캡쳐하여, 사진으로 제공합니다. 제공받은 사진은 다운로드 기능을 제공합니다.
 
-살면서 우리는 즐거운 소식을 전하거나, 선물을 전하는 순간을 마주합니다. 그 순간에 즐거운 표정을 포착해서 사진으로 남기면 좋지 않을까 해서 시작한 프로젝트입니다. Happy Things는 안면 인식을 통해 사람의 감정을 추론하여, 그 순간을 사진으로 캡쳐해주는 웹 어플리세이션입니다. 감정 추론을 목표로 하였지만 감정은 안면으로만 인식되는 것은 아니므로 사실상 행복한 표정을 라이브 비디오 상황에서 포착하는 것을 목적으로 만들어졌습니다.
+# ⚙️ Challenges
+
+프로젝트를 진행하면서 어려웠던 챌린지는 크게 3가지가 있었습니다.
+
+1. 자체 감정 추론 모델을 어떻게 만들것인가?
+2. 실시간 스트리밍 환경에서 3가지 작업을 어떻게 병렬적으로 실행시킬 것인가?
+3. 크로스 브라우징을 위한 safari 문제 해결 여정
+
+## 1. 자체 감정 추론 모델을 어떻게 만들것인가?
+
+### 1-1. 감정 추론 모델 개발 과정
+
+머신러닝을 하기 위해서는 3가지 큰 단계가 있습니다.
+
+- 과거 데이터 수집
+- 데이터 전처리
+- 데이터로 모델을 학습
+
+가장 먼저 감정별로 구별되어 있는 <strong>과거 데이터를 수집</strong>해야 했습니다. 얼굴이 48x48픽셀 그레이스케일 이미지로 구성되어 있어 있는 데이터셋 [fer2013](https://www.kaggle.com/datasets/msambare/fer2013)을 이용하여 데이터 수집을 하였습니다. <br/>
+
+.jpg로 되어 있는 데이터셋을 모델에 학습 시키기 위해서는 <strong>데이터 전처리</strong>가 필요했습니다. 이미지 얼굴 인식을 통해 안면 근육을 수치로 측정할 수 있는 [MediaPipe의 Face-landmark-detection 모델](https://mediapipe-studio.webapps.google.com/demo/face_landmarker)을 통해 3D로 인식한 안면 근육의 움직임 정도를 수치화 시킬 수 있었습니다.
+
+```
+[
+    {
+        "index": 25,
+        "score": 0.845664918422699,
+        "categoryName": "jawOpen",
+        "displayName": ""
+    },
+    {
+        "index": 4,
+        "score": 0.48291221261024475,
+        "categoryName": "browOuterUpLeft",
+        "displayName": ""
+    },
+    {
+        "index": 18,
+        "score": 0.31452351808547974,
+        "categoryName": "eyeLookUpRight",
+        "displayName": ""
+    },
+    {
+        "index": 17,
+        "score": 0.29944589734077454,
+        "categoryName": "eyeLookUpLeft",
+        "displayName": ""
+    },
+
+    //...중략
+]
+```
+
+<center><small>Mediapipe에서 제공하는 이미지 안면인식을 통한 52개의 안면 근육 값 예시</small></center>
+<br/>
+전처리된 데이터를 지도 학습으로 딥머신 러닝을 시키기 위해서는 label을 붙여줘야 했습니다. label은 해당 데이터가 행복한 이미지인지, 행복하지 않은 이미지인지 모델 학습시 구별할 수 있는 역할을 합니다. <br/>
+<small style="padding:2px;">
+<strong>지도 학습이란?</strong>
+입력과 타깃을 전달하여 모델을 훈련한 다음 새로운 데이터를 예측하는 데 활용한다. k-최근접 이웃이 지도 학습 알고리즘이다.
+</small>
+
+```
+//행복한 이미지 라벨링 =  1
+1,
+0.04288517311215401,0.09924527257680893,0.0024865891318768263,7.495935392398678e-7,0.0000015387073517558747,0.2613745927810669,0.1912066638469696,0.4886472225189209,0.254801481962204,0.004974926356226206,0.003475902369245887,0.011440315283834934,0.6184675693511963,0.6213760375976562
+
+//행복하지 않은 이미지 라벨링 = 0
+0,
+0.0005167833296582103,0.00033727806294336915,0.47885823249816895,4.2532121824478963e-7,2.177084184040723e-7,0.008147920481860638,0.02306659333407879,0.038605958223342896,0.045772310346364975,0.031849455088377,0.04954182356595993,0.005695571657270193,0.0000036304211334936554,0.0000025047413600987056
+```
+
+위에 있는 데이터 예시처럼 행복한 이미지 데이터인 경우 1을 라벨링으로 붙이고, 행복하지 않은 이미지 데이터인 경우 0으로 데이터 라벨링을 해주었습니다.
+
+<br/>
+
+전처리된 데이터들을 학습 시킬 과정에서 tensorflow는 데이터를 모델에 학습 시키기 위해서는 tensor라는 데이터 포멧으로 모델을 학습 시킬 수 있다는 사실을 알게 되었습니다. 데이터 변환을 제공해주는 [Danfojs](https://danfo.jsdata.org/)를 통해 .csv파일을 tensor 데이터 포멧으로 변환하여 모델을 학습 시킬 수 있었습니다.
+데이터 학습 결과, 약 <strong>80% 학습 정확도</strong>를 가진 감정 추론 모델을 개발할 수 있었습니다.
+
+<img width="538" alt="모델_학습결과" width="70" height="350" src="https://github.com/sewonjun/happyThings_BE/assets/93499071/14955af2-0178-4d52-981d-ca1cc1f2e446">
+
+### 1-2. 감정 추론 모델 추가 학습 과정
+
+## 2. 실시간 스트리밍 환경에서 병렬적으로 3가지 작업을 어떻게 할 것인가?
+
+실시간으로 얼굴이 스트리밍 되는 환경에서 실행되어야 할 3가지 작업이 있었습니다.
+
+- Mediapipe를 통한 3D 얼굴 인식 및 얼굴 인식 마스크 씌우기
+- 감정 추론 모델을 통한 감정 추론
+- 감정 추론시, 행복한 얼굴일 시 사용자 얼굴 캡쳐
+
+이 세가지 작업을 실시간 스트리밍 환경에서 병렬적으로 실행해야 했습니다. 병렬적으로 세가지 작업을 수행하기 위해서는 모든 작업이 하나의 프레임 안에서 다 끝나야 했습니다. 대부분의 현대 디스플레이는 초당 60프레임으로 갱신되므로, 대략 16ms 안에 세가지 작업이 모두 실행되어야 했습니다. 그래서 하나의 프레임 안에서 해결할 수 있는 코드 실행 시간 최적화를 중점으로 두고 작업하였습니다.
+
+### 2.1 자연스러운 렌더링을 위한 방법: requestAnimationFrame vs setTimeout
+
+실시간으로 세 가지 작업을 동시에 하기 위해서 선택할 수 있는 방법은 requestAnimationFrame, setTimeout 두가지가 있었습니다.</br>
+rAF를 사용했을때, 약 16.7ms로 프레임이 규칙적으로 렌더링 되고 있고, setTimeout을 실행했을때는 약 16~50ms로 불규칙적으로 프레임 렌더링이 되었습니다.
+
+<center>requestAnimationFrame</center>
+
+```javascript
+  async function predictWebcam() {
+    //...
+    let startTimeMs = performance.now();
+    const results = await faceLandmarker.detectForVideo(video, startTimeMs);
+    //...
+    if (!lastTime.current || currentTime - lastTime.current >= delay) {
+      lastTime.current = currentTime;
+      //...
+      if (webcamRunning) {
+      //requestAnimationFrame 사용
+      //브라우저가 리페인트될 준비가 끝나면 콜백 함수 실행
+        const animationFrameId = window.requestAnimationFrame(predictWebcam);
+        setAnimationId(animationFrameId);
+      }
+    } else {
+      if (webcamRunning) {
+        const animationFrameId = window.requestAnimationFrame(predictWebcam);
+        setAnimationId(animationFrameId);
+      }
+    }
+```
+
+<center>setTimeout</center>
+
+```javascript
+async function predictWebcam() {
+  //...
+  let startTimeMs = performance.now();
+  const results = await faceLandmarker.detectForVideo(video, startTimeMs);
+  //...
+  if (!lastTime.current || currentTime - lastTime.current >= delay) {
+    lastTime.current = currentTime;
+    //...
+    if (webcamRunning) {
+      //setTimeout을 이용
+      // 16ms 지연 후 실행
+      const timeoutId = setTimeout(predictWebcam, 16);
+      setAnimationId(timeoutId);
+    }
+  } else {
+    if (webcamRunning) {
+      const timeoutId = setTimeout(predictWebcam, 16);
+      setAnimationId(timeoutId);
+    }
+  }
+}
+```
+
+requestAnimationFrame을 사용했을때, 프레임 렌더링 주기</br>
+<img width="584" height="300" alt="image" src="https://github.com/sewonjun/happyThings_FE/assets/93499071/17d46a5b-99d6-4478-8f9a-36e9b0e65d11">
+
+setTimeout을 사용했을때, 프레임 렌더링 주기</br>
+<img width="584" height="300" alt="image" src="https://github.com/sewonjun/happyThings_FE/assets/93499071/4ca35044-198d-4946-9b91-ca89c61c6d19">
+
+이는 requestAnimationFrame과 setTimeout의 동작 차이에서 일어나는 현상이라는 사실을 알게 되었습니다.
+
+|         방법          | <center>특징<center>                                                                                                                                                                                                                                                          |
+| :-------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| requestAnimationFrame | - 다양한 디바이스에서 해당 브라우저의 리페인트 주기에 맞게 콜백을 예약한다. </br> - 사용자의 디바이스 성능과 배터리 수명을 고려한다 </br> - 브라우저가 비활성화 되면 콜백이 중단된다. (리소스 절약)                                                                           |
+|      setTimeout       | - 정해진 시간 간격으로 실행. => 브라우저 렌더링 주기와 동기화 되지 않는다. </br> - 브라우저 활성 여부와 상관없이 지정된 시간 간격대로 실행이 된다. (리소스 낭비) </br> - 다른 작업 수행으로 콜백 함수 실행이 지연되면, 프레임 드랍이 일어나고, 이는 화면 버벅거림을 초래한다. |
+
+<br/>
+requestAnimationFrame은 브라우저 프레임 렌더링 주기에 맞춰 콜백을 예약하고, 리소스 절약을 할 수 있습니다. 무엇보다 다양한 디바이스에서 작동이 가능해야 하는 프로젝트 특성상, 브라우저에 맞춰 콜백을 예약한다는 점에서 requestAnimationFrame이 setTimeout보다 이 프로젝트에 적합하다고 판단하였습니다.
+
+### 2.2 timestamp를 사용하여 프레임 캡쳐하기
+
+requestAnimationFrame을 통해 얼굴 인식 및 감정 추론을 브라우저의 프레임에 맞춰 실행할 수 있었습니다. 하지만, 사용자 얼굴을 캡쳐해주는데서 다른 문제가 발생했습니다. 모든 프레임에서 캡쳐를 진행하니 프레임 렌더링 주기가 15-20ms에서 15-33ms로 길어졌습니다. 이는 프레임 렌더링 주기의 불규칙성을 가져오고, 결국 얼굴 인식이 부드럽지 않게 이루어지는 결과를 초래했습니다.
+
+이런 상황을 방지하기 위해 일정한 시간 간격을 두고 캡쳐를 하는 방법에 대해 고민해보았습니다. 일정 시간 간격을 두기 위해서 requestAnimationFrame에서는 performance.now를 사용하였습니다. performance.now()는 이전 프레임과 현재 프레임의 시간차를 정확하게 기록하여 일정 시간이 지난후에, capture 로직이 작동하도록 timestamp를 도입하였습니다.
+
+```javascript
+const currentTime = performance.now();
+const delay = 500;
+
+//currentTime - lastTime이 delay만큼 되었을때, 캡쳐 진행
+if (!lastTime.current || currentTime - lastTime.current >= delay) {
+  lastTime.current = currentTime;
+
+  // 캡쳐 로직
+  if (webcamRunning) {
+    const animationFrameId = window.requestAnimationFrame(predictWebcam);
+    setAnimationId(animationFrameId);
+  }
+} else {
+  if (webcamRunning) {
+    const animationFrameId = window.requestAnimationFrame(predictWebcam);
+    setAnimationId(animationFrameId);
+  }
+}
+```
+
+> [!NOTE]
+> 프레임 탭에 노란색 빗금이 쳐저있는 영역은 프레임이 그려지지 않았다는 표시이다.<br/>
+
+timestamp를 사용하지 않아서 프레임 드랍이 일어남<br/>
+<img width="453" alt="image" src="https://github.com/sewonjun/happyThings_FE/assets/93499071/5efeae3a-cea0-42ef-a4b9-4f23a151549e">
+
+timestamp를 사용하여 프레임 드랍이 생기지 않음<br/>
+<img width="464" alt="image" src="https://github.com/sewonjun/happyThings_FE/assets/93499071/77490391-207b-4d1d-85b2-d4dbe1153149">
+
+## 3. 크로스 브라우징을 위한 safari 문제 해결 여정
+
+### 3-1. safari에서의 카메라 접근 권한 오류
 
 ## Schedule
 
@@ -51,183 +252,6 @@
 
 <br/>
 
-# ⚙️ Challenges
-
-프로젝트를 진행하면서 어려웠던 챌린지는 크게 3가지가 있었다.
-
-- 안면 인식을 통한 감정 추론 모델을 어떻게 만들것인가?
-- 행복한 표정을 어떻게 사진으로 사용자들에게 보여줄 것인가?
-- 모바일로 카메라 접근이 가능하게 할 수 있게 하기 위한 방법이 무엇이 있는가?
-
-## 안면 인식을 통한 감정 추론 모델을 어떻게 만들것인가?
-
-### 1. 안면 인식을 어떻게 할 것인가?
-
-감정 추론 모델을 만들기 위해서는 가장 먼저 표정을 추론할 수 있는 안면 인식이 가능해야 했다.
-
-javascript로 안면인식을 하기 위해서는 3가지 방법을 찾았다.
-
-| 방법                                   | 특징                                                                                                                                                                                                                              | 장점                                                                                                                                               | 단점                                                                                                                                             |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| tensorflow.js face-landmarks-detection | - 안면인식에 따른 468개의 얼굴 각 포인트들의 좌표값을 받을 수 있다. <br/> - 브라우저에서 직접 실행되는 js 라이브러리이다.                                                                                                         | - 서버없이 클라이언트 측에서 실시간 얼굴 랜드마크 감지가 가능하다.                                                                                 | - 브라우저와 하드웨이의 성능에 크게 의존한다.<br/> - 무거운 머신 러닝 모델을 실행하기 때문에 느릴 수 있다. <br/> - 특히 모바일에서 느릴 수 있다. |
-| Mediapipe face landmark detection      | - face mesh로 안면 인식을 마스크로 시각적으로 보여줄 수 있다. <br/> - blendshape prediction model을 통해 얼굴의 다양한 표정을 나타내는 계수인 52개의 blendshape 점수를 받을 수 있다 <br/> - 크로스 플랫폼 프레임워크 <br/> - wasm | - 다양한 플렛폼에서의 빠른 성능과 높은 정확도, GPU 가속화를 통한 실시간 처리 능력이 특징이다. <br/> - 모바일 웹의 경우 MediaPipe를 선호할 수 있다. | - 웹 기반 어플리케이션에서의 사용은 별도의 서버나 API가 필요할 수 있다.                                                                          |
-
-tensorflow.js에 있는 face-landmarks-detection은 468개의 얼굴 포인트 값만 받을 수 있는데에 반해, Mediapipe에 있는 Face landmark detection은 face mesh를 통해 얼굴인식 마스크를 씌울 수 있는 것뿐만이 아니라 Blendshape prediction model을 통해 face mesh 모델로부터 출력을 받아 얼굴의 다양한 표정을 나타내는 계수인 52개의 blendshape 점수를 받을 수 있다.
-
-각 얼굴 부분의 0 - 1 사이의 수치를 나타내는 값을 받을 수 있는 mediapipe를 선택하기로 했다. mediapipe가 나타내는 52개의 값들은 아래와 같다.
-
-| blendshapes           |                          |
-| --------------------- | ------------------------ |
-| 1 - browDownLeft      | 27 - mouthClose          |
-| 2 - browDownRight     | 28 - mouthDimpleLeft     |
-| 3 - browInnerUp       | 29 - mouthDimpleRight    |
-| 4 - browOuterUpLeft   | 30 - mouthFrownLeft      |
-| 5 - browOuterUpRight  | 31 - mouthFrownRight     |
-| 6 - cheekPuff         | 32 - mouthFunnel         |
-| 7 - cheekSquintLeft   | 33 - mouthLeft           |
-| 8 - cheekSquintRight  | 34 - mouthLowerDownLeft  |
-| 9 - eyeBlinkLeft      | 35 - mouthLowerDownRight |
-| 10 - eyeBlinkRight    | 36 - mouthPressLeft      |
-| 11 - eyeLookDownLeft  | 37 - mouthPressRight     |
-| 12 - eyeLookDownRight | 38 - mouthPucker         |
-| 13 - eyeLookInLeft    | 39 - mouthRight          |
-| 14 - eyeLookInRight   | 40 - mouthRollLower      |
-| 15 - eyeLookOutLeft   | 41 - mouthRollUpper      |
-| 16 - eyeLookOutRight  | 42 - mouthShrugLower     |
-| 17 - eyeLookUpLeft    | 43 - mouthShrugUpper     |
-| 18 - eyeLookUpRight   | 44 - mouthSmileLeft      |
-| 19 - eyeSquintLeft    | 45 - mouthSmileRight     |
-| 20 - eyeSquintRight   | 46 - mouthStretchLeft    |
-| 21 - eyeWideLeft      | 47 -mouthStretchRight    |
-| 22 - eyeWideRight     | 48 - mouthUpperUpLeft    |
-| 23 - jawForward       | 49 -mouthUpperUpRight    |
-| 24 - jawLeft          | 50 - noseSneerLeft       |
-| 25 - jawOpen          | 51 - noseSneerRight      |
-| 26 - jawRight         | 52 - tongueOut           |
-
-### 2. 모델을 어떻게 만들것인가?
-
-머신러닝의 과정은 크게 3가지로 나뉜다. 과거 데이터 모으기, 데이터 전처리하기, 모델 학습 시키기.
-
-가장 먼저 tensorflow.js를 감정 추론을 시키기 위해 표정 관련 **데이터**가 필요했다. 표정 데이터로 가장 유명한 [fer2013](https://www.kaggle.com/datasets/deadskull7/fer2013)를 사용하였다. 데이터셋에서 행복한 표정 데이터와 그와 반대된다고 판단되는 화난 표정, 슬픈 표정 데이터를 찾아 학습을 시키기로 하였다. 여러 데이터 유형들이 있었고, buffer로 된 이미지 데이터보다는 직접 이미지를 찾아 face mesh mask를 씌워 face blendshape 값을 도출할뒤, 그 값들을 통해 모델을 학습 시키는 것을 택했다.
-
-이미지를 face mesh mask를 씌운 후 json 파일로 결과값들을 저장했다. 이후, 머신러닝 학습에 용이한 데이터셋으로 만들기 위해 csv 파일로 필요한 데이터 형식을 바꾸는 과정을 거쳤다.
-
-csv 파일로 변환시, **뒤센의 미소**에 따른 표정에 유의미한 결과를 내는 데이터들만 골라서 변환을 진행했다.
-
-여기서 뒤센의 미소란, 진짜 미소를 지을때 나타나는 안면 근육의 변화에 관한 이론이다. 이 이론에 따르면 안륜근, 즉 눈 주위에 있는 근육과 광대(대협골근)에 있는 근육이 행복한 미소에 영향을 받는 근육이라고 한다.
-
-그렇게 선별된 faceblendshape 데이터는 총 14개이다.
-
-- browDownLeft :
-- browDownRight
-- browInnerUp
-- cheekSquintLeft
-- cheekSquintRight
-- eyeBlinkRight
-- eyeBlinkLeft
-
-- eyeSquintRight
-- eyeSquintLeft
-- eyeWideLeft
-- eyeWideRight
-- jawOpen
-- mouthSmileLeft
-- mouthSmileRight
-
-선별된 14개의 face blendshape 값들을 **독립변수**로 넣고, 행복한 이미지인 경우 0을 **매개변수**로, 행복하지 않은 이미지인 경우 1을 **매개변수로** 설정하여 지도 학습으로 tensorflow.js를 통해 모델을 핏 시켰다.
-
-|          상태          | 독립변수                                                                                                                                                                                                                                                                                                                                                                                | 종속변수 |
-| :--------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: |
-|   행복한 얼굴 이미지   | 0.0016164835542440414 <br/> 0.0020071598701179028 <br/> 0.27183035016059875 <br/> 1.785326873005033e-7 <br/> 1.4324434971513256e-7 <br/> 0.15129753947257996 <br/> 0.1709703505039215 <br/> 0.2576271593570709 <br/> 0.35123521089553833 <br/> 0.0072589656338095665 <br/> 0.00355226406827569 <br/> 0.007774457335472107 <br/> 0.0000034541039894975256 <br/> 0.0000023912402866699267 |    1     |
-| 화난, 슬픈 얼굴 이미지 | 0.00161648 35542440414 <br/>0.0020071598701179028 <br/>0.27183035016059875 <br/>1.785326873005033e-7<br/>1.4324434971513256e-7 <br/>0.15129753947257996 <br/>0.1709703505039215 <br/>0.2576271593570709 <br/>0.35123521089553833 <br/>0.0072589656338095665 <br/>0.00355226406827569 <br/>0.007774457335472107 <br/>0.0000034541039894975256 <br/>0.0000023912402866699267              |    0     |
-
-실시간으로 얼굴 인식 후 감정 추론 모델을 구동시키면 아래와 같은 값이 나온다. 왼쪽 값은 unhappy 값을 나타내고, 왼쪽 값은 happy 값을 나타낸다.
-
-```jsx
-
-predictHappiness.js:37 predictHappiness [[0.0663047581911087,0.9336951971054077]]
-// 0번 인덱스에 있는 값이 unhappy 수치, 1번 인덱스가 happy 수치를 가리킨다.
-```
-
-## 모바일 카메라 접근이 왜 안될까?
-
-Happy things는 일상의 기쁨을 포착해주는 웹 어플리케이션이다. 일상에서 많이 사용하는 것은 노트북이 아닌 핸드폰이므로, 핸드폰에서도 구동이 가능해야 한다고 생각 했다. 그래서 모바일 구동을 하기 위해 핸드폰에서 구동을 시도했고, 모바일 카메라가 켜지지 않는다는 사실을 알게 되었다.
-
-### 1. 모바일 카메라 접근을 얻기 위한 방법은?
-
-모바일 상에서는 Web API인 `MediaDevices.getUserMedia()`를 통해 미디어 입력 사용 권한을 사용자에게 요청하여 요청된 유형의 미디어를 포함하는 트랙을 생성하는 MediaStream을 생성한다.
-
-```jsx
-const constraints = {
-  video: true,
-};
-
-navigator.mediaDevices.getUserMedia(constraints).then(stream => {
-  videoRef.current.srcObject = stream;
-  videoRef.current.addEventListener("loadeddata", predictWebcam);
-});
-```
-
-`getUserMedia()` 호출은 권한 요청을 트리거하고, 실시간 스트리밍 비디오를 구동 시킬수 있게 만든다.
-
-### 2. 모바일 환경에서 전체 화면으로 비디오가 재생되는 문제
-
-```jsx
-<video
-  ref={videoRef}
-  width="480"
-  height="360"
-  autoPlay
-  playsinline
-  className="w-full h-[360px] bg-white border-8 border-stone-800"
-></video>
-```
-
-모바일 환경에서 video가 전체 화면으로 커지면서 face mesh mask가 씌워지지 않는 문제가 생겼다. 이는 ios의 문제라는 사실을 알게 되었다. webkit에서 발표한 [`New <video> Policies for iOS`](https://webkit.org/blog/6784/new-video-policies-for-ios/)을 통해, 과거의 ios에서의 video 태그에 대한 변화를 알게 되었다. 여러 블로그 글에서 video 태그의 재생을 위해서는 사용자 제스처, 즉 eventListener의 동작이 필요하다고 적혀있었다. 하지만 New `<video>` Policies for iOS에서 명시하길 ios10이후로 무음 video 요소에 대한 유저 제스처 요구 사항이 완화되었다고 한다. 또한, playsinline 속성을 통해 인라인으로 재생할 수 있으며, 재생이 시작될 때 자동으로 전체화면 모드로 들어가지 않는다.
-
-## 얼굴을 매끄럽게 따라가지 못하는 face-mesh mask.
-
--> canelAnimationFrame 사용했던 코드와, 그 코드 없이 그냥 requestAnimationFrame 사용하는 코드 비교 및 설명
-
-얼굴을 인식하기 위해서 Mediapipe의 Face landmark detection을 이용한 face-mesh mask를 움직이는 얼굴을 따라가면서 씌워줘야했다.
-
-## 행복한 순간을 캡쳐할 수 있는 방법은?
-
-행복한 순간을 캡쳐하기 위해서는 아래와 같은 과정을 거쳐야 했다.
-
-- face-landmark-detection으로 face-mesh mask를 씌운다.
-- 얼굴 감지한 후 반환하는 faceblendshape 값들을 받는다.
-- faceblendshape 값들을 통해 emotion-prediction 모델을 통해 unhappy 수치, happy 수치를 받는다.
-- 값들을 통해 사용자에게 맨위에 있는 신호등으로 결과값을 알려주고, happy였던 당시의 얼굴을 이미지로 video 밑에 띄워준다.
-
-video 태그를 통해 라이브로 얼굴을 인식하려면 보통 하나의 프레임이 1초에 를 돌아가는 동안 이루어져야 했다. 빠르게 얼굴을 인식하는 face-landmark-detection과 더불어 위의 모든 과정을 반복하는 것은 무리가 있다고 생각했다.
-
-```jsx
-const capture = captureRef.current;
-capture?.setAttribute("class", "canvas");
-capture?.setAttribute("width", videoRect.width);
-capture?.setAttribute("height", videoRect.height);
-capture.style.left = videoRect.x;
-capture.style.top = videoRect.y;
-capture.style.width = videoRect.width;
-capture.style.height = videoRect.height;
-let captureCtx = captureRef.current.getContext("2d");
-captureCtx.clearRect(0, 0, canvas.width, canvas.height);
-captureCtx.drawImage(
-  videoRef.current,
-  0,
-  0,
-  videoRef.current.width,
-  videoRef.current.height
-);
-//현재 face-mesh mask가 씌워진 video 태그 위에 다른 canvas를 하나 더 만들어서 캡쳐함.
-const capturedPicture = captureRef.current.toDataURL("image/png");
-//dataUrl로 반환된다.
-```
-
-이미 face-mesh 마스크를 띄우고 있는 canvas보다 먼저 또 다른 canvas를 만들어 현재 사진을 캡쳐하는 방식을 택함.
-
 # 🛠️ Tech Stacks
 
 ## Frontend
@@ -252,3 +276,7 @@ const capturedPicture = captureRef.current.toDataURL("image/png");
 <br/>
 
 # 🪢 Features
+
+```
+
+```
