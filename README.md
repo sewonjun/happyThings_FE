@@ -10,19 +10,18 @@
 
 # 📒 Table of Contents
 
-- [Preview](#🎬-Preview)
-- [Introduction](#🙌-Introduction)
-- [Challenges](#⚙️-Challenges)
-- [Tech Stack](#🛠️-Tech-Stacks)
-- [Features](#🪢-Features)
+- [Preview](#Preview)
+- [Introduction](#Introduction)
+- [Challenges](#Challenges)
+- [Tech Stack](#Tech-Stacks)
 
-# 🎬 Preview
+# Preview
 
-# 🙌 Introduction
+# Introduction
 
 Happy Things는 안면 인식을 통해 사람의 감정을 추론하여, 그 순간을 사진으로 제공해주는 웹 어플리케이션입니다. 자체 감정 추론 모델을 개발하여, 모델이 행복한 표정을 실시간으로 캡쳐하여, 사진으로 제공합니다. 제공받은 사진은 다운로드 기능을 제공합니다.
 
-# ⚙️ Challenges
+# Challenges
 
 프로젝트를 진행하면서 어려웠던 챌린지는 크게 3가지가 있었습니다.
 
@@ -224,7 +223,22 @@ timestamp를 사용하여 프레임 드랍이 생기지 않음<br/>
 
 ## 3. 크로스 브라우징을 위한 safari 문제 해결 여정
 
+카메라 권한을 얻기 위해 MediaDevices.getUserMedia()를 통해 미디어 입력 사용 허가를 요청할 수 있었습니다. 하지만 Chrome이나 MicorSoft Edge에서는 카메라 권한 요청을 할 수 있었지만, safari에서는 오류가 생겼습니다
+
 ### 3-1. safari에서의 카메라 접근 권한 오류
+
+<img width="650" alt="image" src="https://github.com/sewonjun/happyThings_FE/assets/93499071/aa4aec64-997a-4825-87fc-9135d52919d1">
+
+다른 브라우저와는 다르게 safari는 MediaDevices.getUserMedia()를 undefined를 반환하였습니다. 이는 MediaDevices.getUserMedia()를 사용하지 못하게 하는 정책 때문인것을 알게 되었습니다. HTTPS, file:/// URL 체계를 사용하여 로드된 페이지 또는 로컬 호스트에서 로드된 페이지가 아니면 MediaDevices.getUserMedia()가 반환하는 프로미스를 거부합니다. 하지만 [safari에서는 localhost도 예외가 아니였습니다](https://stackoverflow.com/questions/44523609/getusermedia-is-not-allowed-in-localhost-safari-11).
+safari에서는 개발 환경에서도 HTTPS를 사용하지 않으면 MediaDevices.getUserMedia()를 반환 받을 수 없기에 로컬에서 HTTPS를 사용할 수 있는 [@vitejs/plugin-basic-ssl](https://www.npmjs.com/package/@vitejs/plugin-basic-ssl)를 사용하여 해결하였습니다.
+
+### 3-2. safari에서의 비디오 속성 오류
+
+모바일 환경에서 video가 전체 화면으로 커지면서 안면 인식 마스크가 씌워지지 않는 문제가 생겼습니다. 전체 화면에서 나오면 라이브 스트리밍이 더 이상 돌아가지 않고, 안면 인식 마스크가 멈춰있는 모습을 볼 수 있었습니다. <br/>
+<img width=200 height=400 src="https://github.com/sewonjun/happyThings_FE/assets/93499071/69f9ae40-f6b9-453a-a639-14383b28194c" />
+<br/>
+이는 ios의 문제라는 사실을 알게 되었습니다. webkit에서 발표한 New `<video>` Policies for iOS을 통해, 과거의 ios에서의 video 태그에 대한 변화를 알게 되었습니다. 여러 블로그 글에서 video 태그의 재생을 위해서는 사용자 제스처, 즉 eventListener의 동작이 필요하다고 했습니다. 하지만 [New `<video>` Policies for iOS](https://webkit.org/blog/6784/new-video-policies-for-ios/)에서 명시하길 ios10 이후로 무음 video 요소에 대한 유저 제스처 요구 사항이 완화되었다고 합니다. 또한, 무음 video의 경우 autoplay를 허용하도록 변경되었습니다.
+결국 video 태그에 playsinline 속성 추가를 통해 인라인으로 재생할 수 있으며, 재생이 시작될 때 자동으로 전체화면 모드로 들어가는 현상을 해결하였습니다.
 
 ## Schedule
 
@@ -252,7 +266,7 @@ timestamp를 사용하여 프레임 드랍이 생기지 않음<br/>
 
 <br/>
 
-# 🛠️ Tech Stacks
+# Tech Stacks
 
 ## Frontend
 
@@ -262,6 +276,7 @@ timestamp를 사용하여 프레임 드랍이 생기지 않음<br/>
 <img src= "https://img.shields.io/badge/TailWind-06B6D4?style=for-the-badge&logo=Tailwind CSS&logoColor=black">
 <!-- Tensorflow -->
 <img src= "https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=TensorFlow&logoColor=black">
+
 <br/>
 
 ## Backend
@@ -274,9 +289,3 @@ timestamp를 사용하여 프레임 드랍이 생기지 않음<br/>
 <img src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=Node.js&logoColor=white"/>
 <br/>
 <br/>
-
-# 🪢 Features
-
-```
-
-```
