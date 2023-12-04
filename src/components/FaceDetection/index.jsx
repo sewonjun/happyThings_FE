@@ -138,7 +138,6 @@ const FaceDetection = () => {
 
   async function predictWebcam() {
     const canvas = canvasRef.current;
-    let canvasCtx = canvas.getContext("2d");
 
     if (canvas === null || webcamRunning === false) return;
     const video = videoRef.current;
@@ -157,6 +156,7 @@ const FaceDetection = () => {
     canvas.style.top = videoRect.y;
     canvas.style.width = videoRect.width;
     canvas.style.height = videoRect.height;
+    const canvasCtx = canvasRef.current.getContext("2d");
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
     const drawingUtils = new DrawingUtils(canvasCtx);
 
@@ -170,13 +170,13 @@ const FaceDetection = () => {
       lastTime.current = currentTime;
 
       const capture = captureRef.current;
-      const captureCtx = captureRef.current.getContext("2d");
       capture?.setAttribute("width", videoRect.width);
       capture?.setAttribute("height", videoRect.height);
       capture.style.left = videoRect.x;
       capture.style.top = videoRect.y;
       capture.style.width = videoRect.width;
       capture.style.height = videoRect.height;
+      const captureCtx = captureRef.current.getContext("2d");
       captureCtx.clearRect(0, 0, canvas.width, canvas.height);
       captureCtx.drawImage(
         videoRef.current,
@@ -186,24 +186,27 @@ const FaceDetection = () => {
         videoRef.current.height
       );
 
-      const capturedPicture = captureRef.current.toDataURL("image/png");
-      const faceBlendShape = results.faceBlendshapes[0]?.categories;
-      const emotionResult = await predictHappiness(faceBlendShape, model);
-      setEmotion(emotionResult);
+      capture.toBlob(async blob => {
+        const faceBlendShape = results.faceBlendshapes[0]?.categories;
+        const emotionResult = await predictHappiness(faceBlendShape, model);
+        setEmotion(emotionResult);
 
-      if (emotionResult === "happy") {
-        imgRef.current[imgRefNumber] = {
-          capturedPicture,
-          faceBlendShape,
-        };
+        if (emotionResult === "happy") {
+          const capturedPicture = URL.createObjectURL(blob);
 
-        imgRefNumber++;
-      }
+          imgRef.current[imgRefNumber] = {
+            capturedPicture,
+            faceBlendShape,
+          };
 
-      if (webcamRunning) {
-        const animationFrameId = window.requestAnimationFrame(predictWebcam);
-        setAnimationId(animationFrameId);
-      }
+          imgRefNumber++;
+        }
+
+        if (webcamRunning) {
+          const animationFrameId = window.requestAnimationFrame(predictWebcam);
+          setAnimationId(animationFrameId);
+        }
+      }, "image/png");
     } else {
       if (webcamRunning) {
         const animationFrameId = window.requestAnimationFrame(predictWebcam);
