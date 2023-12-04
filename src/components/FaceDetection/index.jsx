@@ -103,7 +103,7 @@ const FaceDetection = () => {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         enableCam();
       } else {
-        alert("getUserMedia() is not supported by your browser");
+        alert("Camera is not supported on your device.");
       }
     }
   }
