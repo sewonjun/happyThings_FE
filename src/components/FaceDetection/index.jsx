@@ -1,4 +1,3 @@
-import * as tf from "@tensorflow/tfjs";
 import { useEffect, useRef, useState } from "react";
 import vision from "@mediapipe/tasks-vision";
 import { v4 as uuidv4 } from "uuid";
@@ -9,6 +8,7 @@ import predictHappiness from "../../../util/predictHappiness";
 import drawFaceMask from "../../../util/drawFaceMask";
 import CapturedImage from "../CapturedImage";
 import LoadingBtn from "../LoadingBtn";
+import emotionPredictionModel from "../../../util/emotionPredictionModel";
 
 const FaceDetection = () => {
   const videoRef = useRef(null);
@@ -34,16 +34,7 @@ const FaceDetection = () => {
     }
 
     async function loadModel() {
-      const model = await tf.loadLayersModel(
-        tf.io.http(`${import.meta.env.VITE_URL}/model/emotion-model.json`, {
-          requestInit: {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        })
-      );
+      const model = await emotionPredictionModel();
       if (model) {
         setModel(model);
       }
@@ -140,6 +131,7 @@ const FaceDetection = () => {
     const canvas = canvasRef.current;
 
     if (canvas === null || webcamRunning === false) return;
+
     const video = videoRef.current;
     const videoRect = videoRef.current.getBoundingClientRect();
 
