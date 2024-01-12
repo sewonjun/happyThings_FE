@@ -29,6 +29,7 @@ const FaceDetection = () => {
   const captureRef = useRef<HTMLCanvasElement>(null);
   const lastTime = useRef<number>(0);
   const imgRef = useRef<ImageRef[]>([]);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
   const [faceLandmarker, setFaceLandmarker] = useState<FaceLandmarker | null>(
     null
   );
@@ -131,7 +132,6 @@ const FaceDetection = () => {
 
     try {
       const stream = await openMediaDevices(constraints);
-
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.addEventListener("loadeddata", predictWebcam);
@@ -167,8 +167,6 @@ const FaceDetection = () => {
 
     canvas.setAttribute("width", videoRect.width.toString());
     canvas.setAttribute("height", videoRect.height.toString());
-    // canvas.style.left = videoRect.x + "px";
-    // canvas.style.top = videoRect.y + "px";
     canvas.style.width = videoRect.width + "px";
     canvas.style.height = videoRect.height + "px";
     const canvasCtx = canvas.getContext("2d");
@@ -187,14 +185,16 @@ const FaceDetection = () => {
 
       const capture = captureRef.current;
       const video = videoRef.current;
+      const videoContainerRect =
+        videoContainerRef.current?.getBoundingClientRect();
 
       if (capture && video) {
         captureRef.current.setAttribute("width", videoRect.width.toString());
         captureRef.current.setAttribute("height", videoRect.height.toString());
         captureRef.current.style.left = videoRect.x + "px";
         captureRef.current.style.top = videoRect.y + "px";
-        captureRef.current.style.width = videoRect.width + "px";
-        captureRef.current.style.height = videoRect.height + "px";
+        captureRef.current.style.width = videoContainerRect!.width + "px";
+        captureRef.current.style.height = videoContainerRect!.height + "px";
         const captureCtx = captureRef.current.getContext("2d");
 
         if (captureCtx) {
@@ -282,22 +282,28 @@ const FaceDetection = () => {
             <div
               className={`${
                 isMobile
-                  ? "flex flex-col justify-center items-center w-auto h-auto border-2 bg-stone-800"
+                  ? "flex flex-col justify-center items-center w-10/12 h-auto border-2 bg-stone-800"
                   : "flex flex-col justify-center items-center w-6/12 h-4/5 border-2 max-w-md bg-stone-800"
               }`}
             >
-              <div className="grid grid-cols w-full h-full">
-                <div className="relative block min-w-72 h-fit">
+              <div className="grid grid-rows-3 w-full h-full m-10">
+                <div
+                  className="relative block row-span-2 overflow-hidden"
+                  ref={videoContainerRef}
+                >
                   <video
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    className="absolute w-fit h-fit"
+                    className="absolute block w-auto h-auto"
                   ></video>
-                  <canvas ref={canvasRef} className="absolute w-fit h-fit" />
+                  <canvas
+                    ref={canvasRef}
+                    className="absolute block w-auto h-auto"
+                  />
                   <canvas ref={captureRef} className="hidden" />
                 </div>
-                <div className="block text-center items-center justify-center my-5 py-5">
+                <div className="block text-center items-center row-span-1 justify-center my-5 py-5">
                   <button
                     type="button"
                     onClick={handleFaceMask}
