@@ -47,7 +47,7 @@ export default function CapturedImage({ imgRefCurrent, faceBlendShape }) {
       <Link
         to={"/polaroid"}
         state={{ image: imgRefCurrent }}
-        className="basis-full w-full m-auto"
+        className="basis-full m-auto"
       >
         <img src={imgRefCurrent} alt="" className="flex justify-center" />
       </Link>

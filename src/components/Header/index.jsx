@@ -3,7 +3,7 @@ import logo from "../../assets/logo.svg";
 
 export default function Header() {
   return (
-    <Link to="/" className="flex justify-center my-2 p-1">
+    <Link to="/" className="flex justify-center align-middle my-2 p-1">
       <img
         src={logo}
         alt="happy things logo"
