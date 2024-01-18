@@ -33,5 +33,19 @@ module.exports = {
       { allowConstantExport: true },
     ],
     "no-console": "error",
+    "react/jsx-filename-extension": [
+      1,
+      { extensions: [".js", ".jsx", ".ts", ".tsx"] },
+    ],
+    "import/extensions": [
+      "error",
+      "ignorePackages",
+      {
+        js: "never",
+        jsx: "never",
+        ts: "never",
+        tsx: "never",
+      },
+    ],
   },
 };
