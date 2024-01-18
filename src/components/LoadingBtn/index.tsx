@@ -1,5 +1,11 @@
-/* eslint-disable react/prop-types */
-function LoadingBtn({ faceLandmarker, handleWebCamRunning }) {
+import { FaceLandmarker } from "@mediapipe/tasks-vision";
+
+interface LoadingBtnProps {
+  faceLandmarker: FaceLandmarker;
+  handleWebCamRunning: () => void;
+}
+
+function LoadingBtn({ faceLandmarker, handleWebCamRunning }: LoadingBtnProps) {
   return (
     <div className="block text-center my-10 mt-20">
       {faceLandmarker ? (
