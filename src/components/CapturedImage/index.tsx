@@ -1,15 +1,29 @@
-/* eslint-disable react/prop-types */
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, MouseEvent } from "react";
 import smileImg from "../../assets/smile.svg";
 import neutralImg from "../../assets/neutral.svg";
 import unhappy from "../../assets/unhappy.svg";
 
-export default function CapturedImage({ imgRefCurrent, faceBlendShape }) {
-  const [feedbackSent, setFeedbackSent] = useState(false);
-  const [error, setError] = useState(null);
+interface FaceBlendShape {
+  index: number;
+  score: number;
+  categoryName: string;
+  displayName: string;
+}
 
-  async function fetchData(bodyData, label) {
+interface CapturedImageProp {
+  imgRefCurrent: string;
+  faceBlendShape: FaceBlendShape[];
+}
+
+export default function CapturedImage({
+  imgRefCurrent,
+  faceBlendShape,
+}: CapturedImageProp) {
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function fetchData(bodyData: FaceBlendShape[], label: string) {
     try {
       const emotionData = label;
       const response = await fetch(
@@ -35,9 +49,9 @@ export default function CapturedImage({ imgRefCurrent, faceBlendShape }) {
     }
   }
 
-  function handleUserEmotionEvaluation(event) {
+  function handleUserEmotionEvaluation(event: MouseEvent<HTMLImageElement>) {
     const data = faceBlendShape;
-    const label = event.target.alt;
+    const label = (event.target as HTMLImageElement).alt;
 
     fetchData(data, label);
   }
