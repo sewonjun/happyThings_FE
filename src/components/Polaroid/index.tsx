@@ -11,12 +11,14 @@ export default function Polaroid() {
   const downloadPolaroid = () => {
     const polaroid = polaroidRef.current;
 
-    html2canvas(polaroid).then(canvas => {
-      const link = document.createElement("a");
-      link.download = "polaroid.png";
-      link.href = canvas.toDataURL();
-      link.click();
-    });
+    if (polaroid) {
+      html2canvas(polaroid).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "polaroid.png";
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    }
   };
 
   return (
@@ -36,8 +38,8 @@ export default function Polaroid() {
             <textarea
               name=""
               id=""
-              cols="30"
-              rows="1"
+              cols={30}
+              rows={1}
               placeholder="record your moment"
               className="text-center font-bold"
             ></textarea>
