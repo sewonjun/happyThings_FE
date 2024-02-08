@@ -40,6 +40,7 @@ const FaceDetection = () => {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [model, setModel] = useState<unknown>(null);
   const [emotion, setEmotion] = useState<Emotion>(null);
+  const [isLoading, setIsLoading] = useState<boolean | null>(null);
   let imgRefNumber = 0;
   const runningMode = "VIDEO";
 
@@ -118,9 +119,10 @@ const FaceDetection = () => {
   async function enableCam() {
     if (!faceLandmarker) {
       alert("Wait! faceLandmarker not loaded yet.");
-
       return;
     }
+
+    setIsLoading(true);
 
     const constraints = {
       video: true,
@@ -132,11 +134,15 @@ const FaceDetection = () => {
 
     try {
       const stream = await openMediaDevices(constraints);
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.addEventListener("loadeddata", predictWebcam);
+        videoRef.current.onloadeddata = () => {
+          setIsLoading(false);
+          videoRef.current!.play();
+        };
       }
-
       if (runningMode === "VIDEO") {
         await faceLandmarker.setOptions({ runningMode: runningMode });
       }
@@ -279,6 +285,9 @@ const FaceDetection = () => {
                 🙂
               </div>
             </div>
+            {isLoading && (
+              <div className="loading-container">Loading...</div> // 로딩 화면
+            )}
             <div
               className={`
                 flex flex-col justify-center items-center ${

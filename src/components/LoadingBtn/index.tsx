@@ -1,7 +1,7 @@
 import { FaceLandmarker } from "@mediapipe/tasks-vision";
 
 interface LoadingBtnProps {
-  faceLandmarker: FaceLandmarker;
+  faceLandmarker: FaceLandmarker | null;
   handleWebCamRunning: () => void;
 }
 
