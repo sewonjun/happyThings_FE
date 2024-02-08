@@ -88,7 +88,7 @@ const FaceDetection = () => {
     setWebcamRunning(prev => !prev);
   }
 
-  function handleErrorBtn() {
+  function handleRestart() {
     predictWebcam();
     setErrorMessage("");
   }
@@ -247,7 +247,7 @@ const FaceDetection = () => {
             Error: {errorMessage}
           </h1>
           <button
-            onClick={handleErrorBtn}
+            onClick={handleRestart}
             type="button"
             className="text-gray-50 bg-black h-auto p-1 m-1"
           >
