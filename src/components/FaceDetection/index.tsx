@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { FaceLandmarker, DrawingUtils } from "@mediapipe/tasks-vision";
-import { v4 as uuidv4 } from "uuid";
 
 import initMediaPipe from "../../../mediaPipe/initMediaPipe";
 import predictHappiness from "../../../util/predictHappiness";
 import drawFaceMask from "../../../util/drawFaceMask";
-import CapturedImage from "../CapturedImage";
 import LoadingBtn from "../LoadingBtn";
 import emotionPredictionModel from "../../../util/emotionPredictionModel";
 import ErrorMessage from "../ErrorMessage";
 import EmotionIndicator from "../EmotionIndicator";
 import WebcamVideo from "../WebcamVideo";
+import CapturedList from "../CapturedList";
 
 type Emotion = "happy" | "unhappy" | "neutral" | null;
 
@@ -31,7 +30,7 @@ function FaceDetection() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const captureRef = useRef<HTMLCanvasElement>(null);
   const lastTime = useRef<number>(0);
-  const imgRef = useRef<ImageRef[]>([]);
+  const capturedImageCount = useRef(0);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [faceLandmarker, setFaceLandmarker] = useState<FaceLandmarker | null>(
     null
@@ -44,7 +43,7 @@ function FaceDetection() {
   const [model, setModel] = useState<unknown>(null);
   const [emotion, setEmotion] = useState<Emotion>(null);
   const [isLoading, setIsLoading] = useState<boolean | null>(null);
-  let imgRefNumber = 0;
+  const [capturedImages, setCapturedImages] = useState<ImageRef[]>([]);
   const runningMode = "VIDEO";
 
   useEffect(() => {
@@ -218,13 +217,15 @@ function FaceDetection() {
 
           if (emotionResult === "happy" && blob !== null) {
             const capturedPicture = URL.createObjectURL(blob);
+            capturedImageCount.current += 1;
 
-            imgRef.current[imgRefNumber] = {
-              capturedPicture,
-              faceBlendShape,
-            };
-
-            imgRefNumber++;
+            setCapturedImages(prevImages => [
+              ...prevImages,
+              {
+                capturedPicture,
+                faceBlendShape,
+              },
+            ]);
           }
 
           if (webcamRunning) {
@@ -271,24 +272,10 @@ function FaceDetection() {
           handleWebCamRunning={handleWebCamRunning}
         />
       )}
-      <div className="flex justify-center align-middle text-center text-2xl py-5">
-        {imgRef.current.length ? "Select one picture to make a polaroid" : ""}
-      </div>
-      <div className="flex flex-col justify-center align-middle text-center">
-        {imgRef.current
-          .slice(-5)
-          .map(imgData =>
-            imgData ? (
-              <CapturedImage
-                imgRefCurrent={imgData.capturedPicture}
-                faceBlendShape={imgData.faceBlendShape}
-                key={uuidv4()}
-              />
-            ) : (
-              <></>
-            )
-          )}
-      </div>
+      <CapturedList
+        capturedImages={capturedImages}
+        capturedImageCount={capturedImageCount}
+      />
     </>
   );
 }
