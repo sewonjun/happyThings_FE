@@ -9,6 +9,8 @@ import CapturedImage from "../CapturedImage";
 import LoadingBtn from "../LoadingBtn";
 import emotionPredictionModel from "../../../util/emotionPredictionModel";
 import ErrorMessage from "../ErrorMessage";
+import EmotionIndicator from "../EmotionIndicator";
+import WebcamVideo from "../WebcamVideo";
 
 type Emotion = "happy" | "unhappy" | "neutral" | null;
 
@@ -24,7 +26,7 @@ interface ImageRef {
   faceBlendShape: FaceBlendShape[];
 }
 
-const FaceDetection = () => {
+function FaceDetection() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const captureRef = useRef<HTMLCanvasElement>(null);
@@ -250,68 +252,17 @@ const FaceDetection = () => {
       {webcamRunning ? (
         <>
           <div className="flex flex-col h-screen items-center">
-            <div className="flex grow-0 flex-row h-auto w-auto bg-stone-200 border-2 border-stone-900 ring-offset-0 p-2 m-1  rounded-3xl justify-around">
-              <div
-                className={`text-4xl p-3 m-2 ${
-                  emotion === "unhappy" ? "bg-red-600 " : "bg-stone-300"
-                } rounded-full border-4 border-stone-900 shadow-md`}
-              >
-                🙁
-              </div>
-              <div
-                className={`text-4xl p-3 m-2 ${
-                  emotion === "neutral"
-                    ? "bg-yellow-400 shadow-md"
-                    : "bg-stone-300"
-                } rounded-full border-4 border-stone-900 shadow-md`}
-              >
-                😐
-              </div>
-              <div
-                className={`text-4xl p-3 m-2 ${
-                  emotion === "happy" ? "bg-lime-400" : "bg-stone-300"
-                } rounded-full border-4 border-stone-900 stone-md`}
-              >
-                🙂
-              </div>
-            </div>
-            {isLoading && (
-              <div className="loading-container">Loading...</div> // 로딩 화면
-            )}
-            <div
-              className={`
-                flex flex-col justify-center items-center ${
-                  isMobile ? "w-10/12" : "w-6/12"
-                } h-4/5 border-2 max-w-md bg-stone-800`}
-            >
-              <div className="grid grid-rows-4 w-full h-full m-10">
-                <div
-                  className="relative block row-span-3"
-                  ref={videoContainerRef}
-                >
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="absolute block w-full h-full"
-                  ></video>
-                  <canvas
-                    ref={canvasRef}
-                    className="absolute block w-full h-full"
-                  />
-                  <canvas ref={captureRef} className="hidden" />
-                </div>
-                <div className="block cursor-pointer text-center items-center row-span-1 justify-center my-5 py-5">
-                  <button
-                    type="button"
-                    onClick={handleFaceMask}
-                    className="cursor-pointer z-10 bg-amber-400 hover:bg-white hover:text-amber-400 text-white font-bold py-2 px-4 border rounded text-2xl"
-                  >
-                    {videoDetect ? "Stop" : "Start"}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <EmotionIndicator emotion={emotion} />
+            {isLoading && <div className="loading-container">Loading...</div>}
+            <WebcamVideo
+              isMobile={isMobile}
+              videoContainerRef={videoContainerRef}
+              videoRef={videoRef}
+              canvasRef={canvasRef}
+              captureRef={captureRef}
+              handleFaceMask={handleFaceMask}
+              videoDetect={videoDetect}
+            />
           </div>
         </>
       ) : (
@@ -340,6 +291,6 @@ const FaceDetection = () => {
       </div>
     </>
   );
-};
+}
 
 export default FaceDetection;
