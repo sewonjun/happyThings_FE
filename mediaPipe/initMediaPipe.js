@@ -11,7 +11,7 @@ async function initFaceLandmarker() {
     {
       baseOptions: {
         modelAssetPath:
-          "https://storage.googleapis.com/mediapipe-assets/face_landmarker_with_blendshapes.task",
+          "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
         delegate: "GPU",
       },
       outputFaceBlendshapes: true,
